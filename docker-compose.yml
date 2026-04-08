@@ -1,5 +1,6 @@
 services:
   db:
+    container_name: postgres
     image: postgres:16-alpine
     restart: unless-stopped
     env_file: .env
@@ -18,6 +19,7 @@ services:
       retries: 5
 
   backend:
+    container_name: backend
     build:
       context: ./api
       dockerfile: Dockerfile
@@ -37,6 +39,7 @@ services:
              python manage.py runserver 0.0.0.0:8000"
 
   frontend:
+    container_name: frontend
     build:
       context: ./web
       dockerfile: Dockerfile
