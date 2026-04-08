@@ -1,0 +1,55 @@
+# ========================
+# Environment
+# ========================
+.env
+.env.local
+.env.*.local
+
+# ========================
+# Python / Django
+# ========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.venv/
+venv/
+env/
+staticfiles/
+mediafiles/
+*.log
+db.sqlite3
+
+# ========================
+# Node / React
+# ========================
+node_modules/
+dist/
+build/
+.cache/
+*.tsbuildinfo
+
+# ========================
+# Docker
+# ========================
+postgres_data/
+
+# ========================
+# IDEs
+# ========================
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ========================
+# Testing
+# ========================
+.coverage
+htmlcov/
+.pytest_cache/
+coverage/
