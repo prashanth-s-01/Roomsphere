@@ -34,3 +34,35 @@ class SignupSerializer(serializers.Serializer):
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField()
+
+
+class ProfileUpdateSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    campus = serializers.CharField(required=False, allow_blank=True)
+    budget_min = serializers.IntegerField(required=False, min_value=0)
+    budget_max = serializers.IntegerField(required=False, min_value=0)
+    smoking_preference = serializers.ChoiceField(
+        choices=[('YES', 'Smoker'), ('NO', 'Non-Smoker'), ('OCC', 'Occasional')],
+        required=False
+    )
+    drinking_preference = serializers.ChoiceField(
+        choices=[('NEVER', 'Never'), ('SOCIALLY', 'Socially'), ('REGULARLY', 'Regularly')],
+        required=False
+    )
+    sleep_schedule = serializers.ChoiceField(
+        choices=[('EARLY_BIRD', 'Early Bird (Before 10 PM)'),
+                 ('NIGHT_OWL', 'Night Owl (After 12 AM)'),
+                 ('FLEXIBLE', 'Flexible / In-between')],
+        required=False
+    )
+    gender_preference = serializers.ChoiceField(
+        choices=[
+            ('MALE', 'Male'),
+            ('FEMALE', 'Female'),
+            ('NON_BINARY', 'Non-Binary'),
+            ('OTHER', 'Other'),
+            ('PREFER_NOT_SAY', 'Prefer not to say'),
+            ('ANY', 'No Preference'),
+        ],
+        required=False
+    )

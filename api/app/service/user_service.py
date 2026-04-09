@@ -55,3 +55,32 @@ class UserService:
             return {"error": "Invalid username or password"}
 
         return {"message": "Login successful"}
+
+    @staticmethod
+    def update_profile(data):
+        """
+        Update profile preferences for a user.
+        """
+
+        user = UserDAO.get_user_by_email(data["email"])
+
+        if not user:
+            return {"error": "User not found"}
+
+        fields = [
+            "campus",
+            "budget_min",
+            "budget_max",
+            "smoking_preference",
+            "drinking_preference",
+            "sleep_schedule",
+            "gender_preference",
+        ]
+
+        for field in fields:
+            if field in data:
+                setattr(user, field, data[field])
+
+        user.save()
+
+        return {"message": "Profile updated successfully"}

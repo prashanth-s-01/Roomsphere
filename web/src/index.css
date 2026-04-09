@@ -1,27 +1,26 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Manrope:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 :root {
-  --font-sans: 'Manrope', system-ui, -apple-system, sans-serif;
-  --font-display: 'Fraunces', 'Times New Roman', serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
 
-  --ink: #1a2233;
-  --ink-muted: #516074;
-  --surface: #f7f1ea;
-  --surface-strong: #ffffff;
-  --surface-soft: #eef3f2;
-  --line: #e3d8cd;
-  --accent: #0f766e;
-  --accent-strong: #0b4d55;
-  --accent-warm: #e07a5f;
-  --shadow: 0 24px 50px -35px rgba(22, 26, 38, 0.65);
-  --radius-lg: 20px;
-  --radius-xl: 28px;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --bg: #f5f7fb;
+  --card: #ffffff;
+  --line: #e6e9f2;
+  --primary: #0f172a;
+  --primary-hover: #111827;
+  --accent: #5b5ce2;
+  --accent-soft: #eef2ff;
+  --accent-green: #17c07c;
+  --accent-green-soft: #e6fbf3;
+  --shadow: 0 20px 40px -32px rgba(15, 23, 42, 0.55);
 
   font-family: var(--font-sans);
   line-height: 1.6;
   font-weight: 400;
   color: var(--ink);
-  background-color: var(--surface);
+  background-color: var(--bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -34,10 +33,7 @@
 
 body {
   margin: 0;
-  background:
-    radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.95), rgba(247, 241, 234, 0) 55%),
-    radial-gradient(circle at 85% 0%, rgba(197, 233, 226, 0.6), rgba(247, 241, 234, 0) 50%),
-    #f7f1ea;
+  background: var(--bg);
   color: var(--ink);
 }
 
@@ -65,17 +61,16 @@ textarea {
 h1,
 h2,
 h3 {
-  font-family: var(--font-display);
-  letter-spacing: -0.5px;
+  font-weight: 700;
   color: var(--ink);
   margin: 0;
 }
 
 p {
   margin: 0;
-  color: var(--ink-muted);
+  color: var(--muted);
 }
 
 ::selection {
-  background: rgba(15, 118, 110, 0.2);
+  background: rgba(91, 92, 226, 0.2);
 }

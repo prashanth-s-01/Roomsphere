@@ -1,152 +1,343 @@
+import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { postJson } from '../lib/api'
 
-const Home = () => (
-  <div className="page page-home">
-    <header className="site-nav container reveal" style={{ animationDelay: '60ms' }}>
-      <Link to="/" className="brand">
-        <span className="brand-mark">RS</span>
-        <span className="brand-text">
-          <span className="brand-name">Roomsphere</span>
-          <span className="brand-sub">5 College Housing Exchange</span>
-        </span>
-      </Link>
-      <nav className="nav-links">
-        <a href="#features">Features</a>
-        <a href="#campuses">Campuses</a>
-        <a href="#how">How it works</a>
-      </nav>
-      <div className="nav-actions">
-        <Link to="/login" className="btn btn-ghost">
-          Login
-        </Link>
-        <Link to="/signup" className="btn btn-primary">
-          Get started
-        </Link>
-      </div>
-    </header>
+type StoredUser = {
+  email: string
+  firstName?: string
+  lastName?: string
+  campus?: string
+}
 
-    <main>
-      <section className="hero container">
-        <div className="hero-copy reveal" style={{ animationDelay: '120ms' }}>
-          <span className="pill">Built for the 5 College Consortium</span>
-          <h1 className="hero-title">Find your people, place, and move-out finds in one calm space.</h1>
+const Home = () => {
+  const [user, setUser] = useState<StoredUser | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [profileStatus, setProfileStatus] = useState('')
+  const [profileForm, setProfileForm] = useState({
+    campus: '',
+    budgetMin: '',
+    budgetMax: '',
+    smokingPreference: 'NO',
+    drinkingPreference: 'SOCIALLY',
+    sleepSchedule: 'FLEXIBLE',
+    genderPreference: 'ANY',
+  })
+
+  useEffect(() => {
+    const stored = localStorage.getItem('roomsphereUser')
+    if (!stored) {
+      return
+    }
+
+    try {
+      const parsed = JSON.parse(stored) as StoredUser
+      setUser(parsed)
+      setProfileForm((prev) => ({
+        ...prev,
+        campus: parsed.campus ?? prev.campus,
+      }))
+    } catch {
+      setUser(null)
+    }
+  }, [])
+
+  const initials = useMemo(() => {
+    if (!user) return 'U'
+    const first = user.firstName?.[0]
+    const last = user.lastName?.[0]
+    const combined = `${first ?? ''}${last ?? ''}`.trim()
+    return combined.length > 0 ? combined.toUpperCase() : user.email[0]?.toUpperCase() ?? 'U'
+  }, [user])
+
+  const handleProfileChange = (
+    event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value } = event.target
+    setProfileForm((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleProfileSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!user?.email) {
+      setProfileStatus('Please log in to update your profile.')
+      return
+    }
+
+    setProfileStatus('Saving...')
+
+    try {
+      await postJson('/auth/profile/', {
+        email: user.email,
+        campus: profileForm.campus,
+        budget_min: profileForm.budgetMin ? Number(profileForm.budgetMin) : 0,
+        budget_max: profileForm.budgetMax ? Number(profileForm.budgetMax) : 0,
+        smoking_preference: profileForm.smokingPreference,
+        drinking_preference: profileForm.drinkingPreference,
+        sleep_schedule: profileForm.sleepSchedule,
+        gender_preference: profileForm.genderPreference,
+      })
+
+      const nextUser = { ...user, campus: profileForm.campus }
+      localStorage.setItem('roomsphereUser', JSON.stringify(nextUser))
+      setUser(nextUser)
+      setProfileStatus('Profile updated!')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Update failed'
+      setProfileStatus(message)
+    }
+  }
+
+  return (
+    <div className="page">
+      <header className="home-header">
+        <div className="home-nav container">
+          <Link to="/" className="brand">
+            <span className="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+                <path
+                  d="M4 11.6L12 5l8 6.6V20a1 1 0 0 1-1 1h-4.8a1 1 0 0 1-1-1v-4.2a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8.4Z"
+                  fill="currentColor"
+                />
+              </svg>
+            </span>
+            <span className="brand-text">
+              <span className="brand-name">5College Connect</span>
+              <span className="brand-sub">Amherst Consortium</span>
+            </span>
+          </Link>
+          <nav className="nav-links">
+            <a className="nav-link" href="#roommates">
+              <span className="nav-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+                  <path
+                    d="M7.5 11.5a3 3 0 1 1 0-6 3 3 0 0 1 0 6Zm9 0a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Zm-9 2c-2.5 0-5 1.3-5 3.5v1h10v-1c0-2.2-2.5-3.5-5-3.5Zm9 0c-1 0-2 .2-2.8.6 1.2.9 1.8 2 1.8 3.4v1H21v-1c0-2.2-2.5-3.5-4.5-3.5Z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </span>
+              Roommates
+            </a>
+            <a className="nav-link" href="#moveout">
+              <span className="nav-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+                  <path
+                    d="M6 7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2h-2V7H8v2H6V7Zm-1 5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-6Zm5 2v2h4v-2h-4Z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </span>
+              Moveout Sales
+            </a>
+          </nav>
+          <div className="nav-actions">
+            {user ? (
+              <div className="profile-menu">
+                <button
+                  className="profile-button"
+                  type="button"
+                  onClick={() => setMenuOpen((prev) => !prev)}
+                  aria-expanded={menuOpen}
+                >
+                  {initials}
+                </button>
+                {menuOpen ? (
+                  <div className="profile-dropdown">
+                    <p className="profile-title">Update housing profile</p>
+                    <form className="profile-form" onSubmit={handleProfileSubmit}>
+                      <label className="field">
+                        <span>Campus</span>
+                        <select
+                          name="campus"
+                          value={profileForm.campus}
+                          onChange={handleProfileChange}
+                        >
+                          <option value="">Select campus</option>
+                          <option value="UMass Amherst">UMass Amherst</option>
+                          <option value="Amherst College">Amherst College</option>
+                          <option value="Hampshire College">Hampshire College</option>
+                          <option value="Smith College">Smith College</option>
+                          <option value="Mount Holyoke">Mount Holyoke</option>
+                        </select>
+                      </label>
+                      <div className="form-grid">
+                        <label className="field">
+                          <span>Budget min</span>
+                          <input
+                            type="number"
+                            name="budgetMin"
+                            value={profileForm.budgetMin}
+                            onChange={handleProfileChange}
+                            placeholder="$500"
+                          />
+                        </label>
+                        <label className="field">
+                          <span>Budget max</span>
+                          <input
+                            type="number"
+                            name="budgetMax"
+                            value={profileForm.budgetMax}
+                            onChange={handleProfileChange}
+                            placeholder="$1200"
+                          />
+                        </label>
+                      </div>
+                      <label className="field">
+                        <span>Smoking preference</span>
+                        <select
+                          name="smokingPreference"
+                          value={profileForm.smokingPreference}
+                          onChange={handleProfileChange}
+                        >
+                          <option value="NO">Non-smoker</option>
+                          <option value="OCC">Occasional</option>
+                          <option value="YES">Smoker</option>
+                        </select>
+                      </label>
+                      <label className="field">
+                        <span>Drinking preference</span>
+                        <select
+                          name="drinkingPreference"
+                          value={profileForm.drinkingPreference}
+                          onChange={handleProfileChange}
+                        >
+                          <option value="NEVER">Never</option>
+                          <option value="SOCIALLY">Socially</option>
+                          <option value="REGULARLY">Regularly</option>
+                        </select>
+                      </label>
+                      <label className="field">
+                        <span>Sleep schedule</span>
+                        <select
+                          name="sleepSchedule"
+                          value={profileForm.sleepSchedule}
+                          onChange={handleProfileChange}
+                        >
+                          <option value="EARLY_BIRD">Early bird</option>
+                          <option value="NIGHT_OWL">Night owl</option>
+                          <option value="FLEXIBLE">Flexible</option>
+                        </select>
+                      </label>
+                      <label className="field">
+                        <span>Housing preference</span>
+                        <select
+                          name="genderPreference"
+                          value={profileForm.genderPreference}
+                          onChange={handleProfileChange}
+                        >
+                          <option value="ANY">No preference</option>
+                          <option value="MALE">Male roommates</option>
+                          <option value="FEMALE">Female roommates</option>
+                          <option value="NON_BINARY">Non-binary roommates</option>
+                          <option value="OTHER">Other</option>
+                          <option value="PREFER_NOT_SAY">Prefer not to say</option>
+                        </select>
+                      </label>
+                      <button className="btn btn-primary" type="submit">
+                        Save changes
+                      </button>
+                      {profileStatus ? <p className="form-note">{profileStatus}</p> : null}
+                    </form>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <Link to="/login" className="btn btn-primary">
+                Login / Sign Up
+              </Link>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <main className="container">
+        <section className="home-hero">
+          <span className="hero-badge">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
+              <path
+                d="M4 9l8-4 8 4-8 4-8-4Zm3 4.5 5 2.5 5-2.5v3l-5 2.5-5-2.5v-3Z"
+                fill="currentColor"
+              />
+            </svg>
+            Exclusive to 5 College Consortium
+          </span>
+          <h1 className="hero-title">Connect, Find, and Sell</h1>
           <p className="hero-sub">
-            Roomsphere keeps roommate matching, sublets, and verified move-out listings inside the
-            UMass Amherst, Amherst, Hampshire, Smith, and Mount Holyoke community.
+            Your one-stop platform for finding roommates and buying moveout items across UMass Amherst,
+            Amherst, Hampshire, Smith, and Mount Holyoke.
           </p>
-          <div className="hero-actions">
-            <Link to="/signup" className="btn btn-primary">
-              Create your profile
-            </Link>
-            <Link to="/login" className="btn btn-outline">
-              Log in
-            </Link>
-          </div>
-          <div className="hero-proof">
-            <span>Campus email verification</span>
-            <span>Private listings by semester</span>
-            <span>Roommate match scores</span>
-          </div>
-        </div>
-        <div className="hero-visual reveal" style={{ animationDelay: '180ms' }}>
-          <div className="hero-stack">
-            <article className="hero-card">
-              <h3>Roommate match</h3>
-              <p>Quiet mornings, bike commuter, wants a sunlit room.</p>
-              <div className="hero-meta">
-                <span>92% vibe score</span>
-                <span>Smith College</span>
-              </div>
-            </article>
-            <article className="hero-card">
-              <h3>Move-out marketplace</h3>
-              <p>Desk, twin bed, and lamp ready for pickup this Friday.</p>
-              <div className="hero-meta">
-                <span>$65 bundle</span>
-                <span>UMass Amherst</span>
-              </div>
-            </article>
-            <article className="hero-card">
-              <h3>Sublet watchlist</h3>
-              <p>Two rooms, summer lease, walking distance to PVTA.</p>
-              <div className="hero-meta">
-                <span>8 new alerts</span>
-                <span>Amherst College</span>
-              </div>
-            </article>
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <section id="features" className="feature-grid container">
-        <article className="feature-card reveal" style={{ animationDelay: '220ms' }}>
-          <h3>Roommate matching</h3>
-          <p>Set your lifestyle, budget, and move-in date. We surface compatible matches fast.</p>
-        </article>
-        <article className="feature-card reveal" style={{ animationDelay: '260ms' }}>
-          <h3>Move-out exchange</h3>
-          <p>Buy and sell furniture, kitchenware, and decor from people on your campus.</p>
-        </article>
-        <article className="feature-card reveal" style={{ animationDelay: '300ms' }}>
-          <h3>Verified listings</h3>
-          <p>Every listing is tied to a campus email, with semester windows and safety notes.</p>
-        </article>
-      </section>
-
-      <section id="campuses" className="campus container reveal" style={{ animationDelay: '340ms' }}>
-        <h2>Five colleges. One trusted network.</h2>
-        <p>Keep your housing search inside the consortium without juggling five different groups.</p>
-        <div className="campus-list">
-          <span className="campus-pill">UMass Amherst</span>
-          <span className="campus-pill">Amherst College</span>
-          <span className="campus-pill">Hampshire College</span>
-          <span className="campus-pill">Smith College</span>
-          <span className="campus-pill">Mount Holyoke</span>
-        </div>
-      </section>
-
-      <section id="how" className="steps container">
-        <h2 className="reveal" style={{ animationDelay: '380ms' }}>
-          How it works
-        </h2>
-        <div className="steps-grid">
-          <article className="step-card reveal" style={{ animationDelay: '420ms' }}>
-            <span className="step-number">Step 01</span>
-            <h3>Create your profile</h3>
-            <p>Share your housing goals, budget, and preferences in two minutes.</p>
+        <section className="feature-grid">
+          <article className="feature-card" id="roommates">
+            <div className="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+                <path
+                  d="M7.5 11.5a3 3 0 1 1 0-6 3 3 0 0 1 0 6Zm9 0a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Zm-9 2c-2.5 0-5 1.3-5 3.5v1h10v-1c0-2.2-2.5-3.5-5-3.5Zm9 0c-1 0-2 .2-2.8.6 1.2.9 1.8 2 1.8 3.4v1H21v-1c0-2.2-2.5-3.5-4.5-3.5Z"
+                  fill="currentColor"
+                />
+              </svg>
+            </div>
+            <h3>Roommate Finder</h3>
+            <p>
+              Post apartment vacancies or browse available rooms near campus. Connect with potential
+              roommates from across the consortium.
+            </p>
+            <div className="feature-actions">
+              <Link to="/login" className="btn btn-primary">
+                Browse Listings
+              </Link>
+              <Link to="/signup" className="btn btn-light">
+                Post Vacancy
+              </Link>
+            </div>
           </article>
-          <article className="step-card reveal" style={{ animationDelay: '460ms' }}>
-            <span className="step-number">Step 02</span>
-            <h3>Browse verified listings</h3>
-            <p>Filter by campus, lease type, and move-out items posted by students.</p>
-          </article>
-          <article className="step-card reveal" style={{ animationDelay: '500ms' }}>
-            <span className="step-number">Step 03</span>
-            <h3>Connect and close</h3>
-            <p>Message safely, coordinate visits, and finalize plans all in one place.</p>
-          </article>
-        </div>
-      </section>
 
-      <section className="cta container reveal" style={{ animationDelay: '540ms' }}>
-        <h2>Ready to make your next move?</h2>
-        <p>Join Roomsphere to keep housing, sublets, and move-out deals organized by campus.</p>
-        <div className="cta-actions">
-          <Link to="/signup" className="btn btn-primary">
-            Sign up with campus email
-          </Link>
-          <Link to="/login" className="btn btn-ghost">
-            I already have an account
-          </Link>
-        </div>
-      </section>
-    </main>
+          <article className="feature-card" id="moveout">
+            <div className="card-icon green" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+                <path
+                  d="M6 7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2h-2V7H8v2H6V7Zm-1 5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-6Zm5 2v2h4v-2h-4Z"
+                  fill="currentColor"
+                />
+              </svg>
+            </div>
+            <h3>Moveout Sales</h3>
+            <p>
+              Buy or sell furniture, electronics, textbooks, and more. Perfect for students moving in
+              or out of the area.
+            </p>
+            <div className="feature-actions">
+              <Link to="/login" className="btn btn-primary">
+                Browse Items
+              </Link>
+              <Link to="/signup" className="btn btn-light">
+                Post Item
+              </Link>
+            </div>
+          </article>
+        </section>
 
-    <footer className="footer container">
-      <span>Roomsphere, built for the 5 College Consortium.</span>
-      <span>Housing, roommates, and move-out listings in one trusted place.</span>
-    </footer>
-  </div>
-)
+        <section className="consortium">
+          <div className="consortium-title">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
+              <path
+                d="M12 22a7 7 0 1 0-7-7c0 3.9 7 7 7 7Zm0-9a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z"
+                fill="currentColor"
+              />
+            </svg>
+            Serving the 5 College Consortium
+          </div>
+          <div className="consortium-list">
+            <span className="consortium-pill">UMass Amherst</span>
+            <span className="consortium-pill">Amherst College</span>
+            <span className="consortium-pill">Hampshire College</span>
+            <span className="consortium-pill">Smith College</span>
+            <span className="consortium-pill">Mount Holyoke</span>
+          </div>
+        </section>
+      </main>
+    </div>
+  )
+}
 
 export default Home
