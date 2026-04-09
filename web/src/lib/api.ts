@@ -1,9 +1,12 @@
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+const RAW_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+const trimmedBase = RAW_BASE.replace(/\/$/, '')
+const API_BASE = trimmedBase.endsWith('/api') ? trimmedBase : `${trimmedBase}/api`
 
 export type ApiResult = Record<string, unknown>
 
 export async function postJson(path: string, body: Record<string, unknown>) {
-  const response = await fetch(`${API_BASE}${path}`, {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  const response = await fetch(`${API_BASE}${normalizedPath}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
