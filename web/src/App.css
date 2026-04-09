@@ -178,6 +178,23 @@
   color: #dc2626;
 }
 
+.profile-logout {
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.profile-logout:hover {
+  border-color: #cbd5f5;
+  color: var(--ink);
+  background: #f8f9ff;
+}
+
 .form-success {
   font-size: 13px;
   color: #16a34a;

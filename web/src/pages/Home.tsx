@@ -87,6 +87,22 @@ const Home = () => {
     }
   }
 
+  const handleLogout = () => {
+    localStorage.removeItem('roomsphereUser')
+    setUser(null)
+    setMenuOpen(false)
+    setProfileStatus('')
+    setProfileForm({
+      campus: '',
+      budgetMin: '',
+      budgetMax: '',
+      smokingPreference: 'NO',
+      drinkingPreference: 'SOCIALLY',
+      sleepSchedule: 'FLEXIBLE',
+      genderPreference: 'ANY',
+    })
+  }
+
   return (
     <div className="page">
       <header className="home-header">
@@ -234,6 +250,9 @@ const Home = () => {
                       </label>
                       <button className="btn btn-primary" type="submit">
                         Save changes
+                      </button>
+                      <button className="profile-logout" type="button" onClick={handleLogout}>
+                        Log out
                       </button>
                       {profileStatus ? <p className="form-note">{profileStatus}</p> : null}
                     </form>
