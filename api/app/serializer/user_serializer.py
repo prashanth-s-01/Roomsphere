@@ -1,6 +1,21 @@
 
 from rest_framework import serializers
 
+ALLOWED_EMAIL_DOMAINS = {
+    "amherst.edu",
+    "hampshire.edu",
+    "mtholyoke.edu",
+    "smith.edu",
+    "umass.edu",
+}
+
+
+def _is_allowed_email(email):
+    if "@" not in email:
+        return False
+    domain = email.split("@")[-1].lower().strip()
+    return domain in ALLOWED_EMAIL_DOMAINS
+
 
 class SignupSerializer(serializers.Serializer):
     """
@@ -28,12 +43,23 @@ class SignupSerializer(serializers.Serializer):
         # basic validation hook
         if "@" not in value:
             raise serializers.ValidationError("Invalid email")
+        if not _is_allowed_email(value):
+            raise serializers.ValidationError(
+                "Email must be from the Five College Consortium"
+            )
         return value
 
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField()
+
+    def validate_email(self, value):
+        if not _is_allowed_email(value):
+            raise serializers.ValidationError(
+                "Email must be from the Five College Consortium"
+            )
+        return value
 
 
 class ProfileUpdateSerializer(serializers.Serializer):
@@ -66,3 +92,10 @@ class ProfileUpdateSerializer(serializers.Serializer):
         ],
         required=False
     )
+
+    def validate_email(self, value):
+        if not _is_allowed_email(value):
+            raise serializers.ValidationError(
+                "Email must be from the Five College Consortium"
+            )
+        return value

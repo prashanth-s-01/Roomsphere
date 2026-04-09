@@ -1,6 +1,7 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { postJson } from '../lib/api'
+import { allowedCollegeDomainsText, isAllowedCollegeEmail } from '../lib/email'
 
 const Signup = () => {
   const navigate = useNavigate()
@@ -36,8 +37,8 @@ const Signup = () => {
       return
     }
 
-    if (!form.email.includes('@')) {
-      setError('Please enter a valid email address.')
+    if (!isAllowedCollegeEmail(form.email)) {
+      setError(`Use a Five College Consortium email (${allowedCollegeDomainsText()}).`)
       return
     }
 
@@ -173,7 +174,9 @@ const Signup = () => {
                 onChange={handleChange}
                 required
               />
-              <span className="field-help">Use your .edu email for verification.</span>
+              <span className="field-help">
+                Accepted domains: {allowedCollegeDomainsText()}.
+              </span>
             </label>
             <label className="field">
               <span>Phone number (optional)</span>

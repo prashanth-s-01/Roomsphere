@@ -1,6 +1,7 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { postJson } from '../lib/api'
+import { allowedCollegeDomainsText, isAllowedCollegeEmail } from '../lib/email'
 
 const Login = () => {
   const navigate = useNavigate()
@@ -24,6 +25,12 @@ const Login = () => {
     setLoading(true)
 
     try {
+      if (!isAllowedCollegeEmail(form.email)) {
+        throw new Error(
+          `Please use a Five College Consortium email (${allowedCollegeDomainsText()}).`,
+        )
+      }
+
       await postJson('/auth/login/', {
         email: form.email,
         password: form.password,
@@ -78,6 +85,9 @@ const Login = () => {
                 onChange={handleChange}
                 required
               />
+              <span className="field-help">
+                Accepted domains: {allowedCollegeDomainsText()}.
+              </span>
             </label>
             <label className="field">
               <span>Password</span>
