@@ -1,7 +1,8 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { useState, type ChangeEvent, type FormEvent, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { postJson } from '../lib/api'
-import { allowedCollegeDomainsText, isAllowedCollegeEmail } from '../lib/email'
+import { allowedCollegeDomainsText, isAllowedCollegeEmail, initEmailJS, generateOTP, sendOTPEmail } from '../lib/email'
+import OTPDialog from '../components/OTPDialog'
 
 const Signup = () => {
   const navigate = useNavigate()
@@ -19,6 +20,14 @@ const Signup = () => {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showOTPDialog, setShowOTPDialog] = useState(false)
+  const [otpCode, setOtpCode] = useState('')
+  const [otpLoading, setOtpLoading] = useState(false)
+  const [pendingSignupData, setPendingSignupData] = useState<any>(null)
+
+  useEffect(() => {
+    initEmailJS()
+  }, [])
 
   const handleChange = (
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -55,7 +64,15 @@ const Signup = () => {
     setLoading(true)
 
     try {
-      await postJson('/auth/signup/', {
+      // Generate OTP
+      const generatedOTP = generateOTP()
+      setOtpCode(generatedOTP)
+
+      // Send OTP email
+      await sendOTPEmail(form.email, generatedOTP, form.firstName)
+
+      // Store form data and show OTP dialog
+      setPendingSignupData({
         first_name: form.firstName,
         last_name: form.lastName,
         email: form.email,
@@ -66,18 +83,55 @@ const Signup = () => {
         phone_number: form.phoneNumber || undefined,
       })
 
-      setSuccess('Account created! Please log in to continue.')
-      navigate('/login', { state: { email: form.email } })
+      setShowOTPDialog(true)
+      setSuccess('We sent a verification code to your email!')
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Signup failed'
+      const message = err instanceof Error ? err.message : 'Failed to send verification code'
       setError(message)
     } finally {
       setLoading(false)
     }
   }
 
+  const handleOTPSubmit = async (otp: string) => {
+    setOtpLoading(true)
+
+    try {
+      // Verify OTP matches
+      if (otp !== otpCode) {
+        throw new Error('Invalid verification code')
+      }
+
+      // OTP verified, create account
+      await postJson('/auth/signup/', pendingSignupData)
+
+      setSuccess('Account created! Please log in to continue.')
+      setShowOTPDialog(false)
+      navigate('/login', { state: { email: form.email } })
+    } catch (err) {
+      throw err
+    } finally {
+      setOtpLoading(false)
+    }
+  }
+
+  const handleOTPCancel = () => {
+    setShowOTPDialog(false)
+    setOtpCode('')
+    setPendingSignupData(null)
+    setSuccess('')
+  }
+
   return (
     <div className="page auth-page">
+      {showOTPDialog && (
+        <OTPDialog
+          email={form.email}
+          onSubmit={handleOTPSubmit}
+          onCancel={handleOTPCancel}
+          isLoading={otpLoading}
+        />
+      )}
       <header className="home-header">
         <div className="home-nav container">
           <Link to="/" className="brand">
@@ -85,7 +139,7 @@ const Signup = () => {
               RS
             </span>
             <span className="brand-text">
-              <span className="brand-name">5College Connect</span>
+              <span className="brand-name">Roomsphere</span>
               <span className="brand-sub">Amherst Consortium</span>
             </span>
           </Link>

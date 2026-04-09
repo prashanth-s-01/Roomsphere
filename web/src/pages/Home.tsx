@@ -117,7 +117,7 @@ const Home = () => {
               </svg>
             </span>
             <span className="brand-text">
-              <span className="brand-name">5College Connect</span>
+              <span className="brand-name">Roomsphere</span>
               <span className="brand-sub">Amherst Consortium</span>
             </span>
           </Link>
