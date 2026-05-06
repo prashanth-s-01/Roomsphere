@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type MutableRefObject } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { getJson, getWebSocketBase, postJson } from '../lib/api'
+import { playMessagePing } from '../lib/notificationSound'
 import '../styles/Messages.css'
 
 type StoredUser = {
@@ -236,14 +237,20 @@ const Messages = () => {
         }
 
         if (payload.type === 'message.created' && payload.message && typeof payload.message !== 'string') {
+          const nextMessage = payload.message as ChatMessage
+
           setThread((previous) => {
             if (!previous) {
               return previous
             }
 
+            if (!nextMessage.is_current_user) {
+              void playMessagePing()
+            }
+
             return {
               ...previous,
-              messages: [...previous.messages, payload.message as ChatMessage],
+              messages: [...previous.messages, nextMessage],
             }
           })
         }

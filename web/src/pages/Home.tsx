@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useRef, type ChangeEvent, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { getJson, getWebSocketBase, postJson } from '../lib/api'
+import { playMessagePing } from '../lib/notificationSound'
 
 type StoredUser = {
   email: string
@@ -99,11 +100,16 @@ const Home = () => {
             // Handle single conversation update
             if (payload.type === 'inbox.updated' && payload.conversation) {
               setConversations((previous) => {
-                const updated = previous.map((conv) =>
-                  conv.id === payload.conversation!.id ? payload.conversation! : conv,
-                )
+                const nextConversation = payload.conversation!
+                const previousConversation = previous.find((conv) => conv.id === nextConversation.id)
+                const updated = previous.map((conv) => (conv.id === nextConversation.id ? nextConversation : conv))
                 const total = updated.reduce((sum, conv) => sum + (conv.unread_count || 0), 0)
                 setUnreadCount(total)
+
+                if ((nextConversation.unread_count || 0) > (previousConversation?.unread_count || 0)) {
+                  void playMessagePing()
+                }
+
                 return updated
               })
             }
