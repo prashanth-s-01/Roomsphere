@@ -1,7 +1,8 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { useCallback, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { postJson } from '../lib/api'
 import { allowedCollegeDomainsText, isAllowedCollegeEmail } from '../lib/email'
+import { useAutoClearMessage } from '../lib/useAutoClearMessage'
 
 const Login = () => {
   const navigate = useNavigate()
@@ -18,6 +19,10 @@ const Login = () => {
     const { name, value } = event.target
     setForm((prev) => ({ ...prev, [name]: value }))
   }
+
+  const clearError = useCallback(() => setError(''), [])
+
+  useAutoClearMessage(error, clearError)
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -73,7 +78,7 @@ const Login = () => {
             <h1 className="auth-title">Welcome back</h1>
             <p className="auth-sub">Log in with your campus email to keep listings verified.</p>
           </div>
-          <form className="auth-form" onSubmit={handleSubmit}>
+          <form className="auth-form" onSubmit={handleSubmit} aria-label="Login form">
             <label className="field">
               <span>Campus email</span>
               <input
@@ -84,8 +89,10 @@ const Login = () => {
                 value={form.email}
                 onChange={handleChange}
                 required
+                aria-label="Campus email address"
+                aria-describedby="email-help"
               />
-              <span className="field-help">
+              <span id="email-help" className="field-help">
                 Accepted domains: {allowedCollegeDomainsText()}.
               </span>
             </label>
@@ -99,19 +106,24 @@ const Login = () => {
                 value={form.password}
                 onChange={handleChange}
                 required
+                aria-label="Your password"
               />
             </label>
             <div className="auth-actions">
               <label className="checkbox">
-                <input type="checkbox" />
+                <input type="checkbox" aria-label="Remember me on this device" />
                 <span>Remember me</span>
               </label>
-              <button className="link-button" type="button">
+              <button className="link-button" type="button" aria-label="Password reset help">
                 Forgot password?
               </button>
             </div>
-            {error ? <p className="form-error">{error}</p> : null}
-            <button className="btn btn-primary" type="submit" disabled={loading}>
+            {error ? (
+              <p className="form-error" role="alert" aria-live="polite" aria-atomic="true">
+                {error}
+              </p>
+            ) : null}
+            <button className="btn btn-primary" type="submit" disabled={loading} aria-busy={loading} aria-label={loading ? 'Logging in, please wait' : 'Log in'}>
               {loading ? 'Logging in...' : 'Log in'}
             </button>
           </form>

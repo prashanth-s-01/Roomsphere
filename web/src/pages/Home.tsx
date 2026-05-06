@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, useRef, type ChangeEvent, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { postJson } from '../lib/api'
+import { getJson, getWebSocketBase, postJson } from '../lib/api'
+import { playMessagePing } from '../lib/notificationSound'
+
+const log = (msg: string) => console.debug(`[Home] ${msg}`)
 
 type StoredUser = {
   email: string
@@ -9,10 +12,18 @@ type StoredUser = {
   campus?: string
 }
 
+type ConversationSummary = {
+  id: string
+  unread_count: number
+}
+
 const Home = () => {
   const [user, setUser] = useState<StoredUser | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [profileStatus, setProfileStatus] = useState('')
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [_conversations, setConversations] = useState<ConversationSummary[]>([])
+  const inboxSocketRef = useRef<WebSocket | null>(null)
   const [profileForm, setProfileForm] = useState({
     campus: '',
     budgetMin: '',
@@ -40,6 +51,102 @@ const Home = () => {
       setUser(null)
     }
   }, [])
+
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      const stored = localStorage.getItem('roomsphereUser')
+      if (!stored) return
+
+      try {
+        const parsed = JSON.parse(stored) as StoredUser
+        const result = await getJson('/messages/conversations/', { email: parsed.email })
+        const nextConversations = Array.isArray(result.conversations)
+          ? (result.conversations as ConversationSummary[])
+          : []
+        setConversations(nextConversations)
+        const total = nextConversations.reduce((sum, conv) => sum + (conv.unread_count || 0), 0)
+        log(`Initial unread count: ${total}`)
+        setUnreadCount(total)
+      } catch {
+        // silently fail
+      }
+    }
+
+    const connectInboxSocket = () => {
+      const stored = localStorage.getItem('roomsphereUser')
+      if (!stored) return
+
+      try {
+        const parsed = JSON.parse(stored) as StoredUser
+        const wsUrl = `${getWebSocketBase()}/ws/messages/inbox/?email=${encodeURIComponent(parsed.email)}`
+        const socket = new WebSocket(wsUrl)
+
+        socket.onopen = () => {
+          // Connection established
+        }
+
+        socket.onmessage = (event) => {
+          try {
+            const payload = JSON.parse(event.data) as {
+              type?: string
+              conversations?: ConversationSummary[]
+              conversation?: ConversationSummary
+            }
+
+            // Handle full inbox snapshot
+            if (payload.type === 'inbox.snapshot' && Array.isArray(payload.conversations)) {
+              setConversations(payload.conversations)
+              const total = payload.conversations.reduce((sum, conv) => sum + (conv.unread_count || 0), 0)
+              log(`Inbox snapshot: ${total} unread`)
+              setUnreadCount(total)
+            }
+
+            // Handle single conversation update
+            if (payload.type === 'inbox.updated' && payload.conversation) {
+              setConversations((previous) => {
+                const nextConversation = payload.conversation!
+                const previousConversation = previous.find((conv) => conv.id === nextConversation.id)
+                const updated = previous.map((conv) => (conv.id === nextConversation.id ? nextConversation : conv))
+                const total = updated.reduce((sum, conv) => sum + (conv.unread_count || 0), 0)
+                const prevTotal = previous.reduce((sum, conv) => sum + (conv.unread_count || 0), 0)
+                log(`Unread updated: ${prevTotal} → ${total}`)
+                setUnreadCount(total)
+
+                if ((nextConversation.unread_count || 0) > (previousConversation?.unread_count || 0)) {
+                  void playMessagePing()
+                }
+
+                return updated
+              })
+            }
+          } catch {
+            // silently fail
+          }
+        }
+
+        socket.onerror = () => {
+          // Connection error
+        }
+
+        socket.onclose = () => {
+          // Connection closed, will reconnect on next effect
+        }
+
+        inboxSocketRef.current = socket
+      } catch {
+        // silently fail
+      }
+    }
+
+    fetchUnreadCount()
+    connectInboxSocket()
+
+    return () => {
+      if (inboxSocketRef.current) {
+        inboxSocketRef.current.close()
+      }
+    }
+  }, [user])
 
   const initials = useMemo(() => {
     if (!user) return 'U'
@@ -122,7 +229,7 @@ const Home = () => {
             </span>
           </Link>
           <nav className="nav-links">
-            <a className="nav-link" href="#roommates">
+            <a className="nav-link" href="#roommates" aria-label="Navigate to roommates section">
               <span className="nav-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
                   <path
@@ -133,7 +240,7 @@ const Home = () => {
               </span>
               Roommates
             </a>
-            <a className="nav-link" href="#moveout">
+            <a className="nav-link" href="#moveout" aria-label="Navigate to moveout sales section">
               <span className="nav-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
                   <path
@@ -144,6 +251,16 @@ const Home = () => {
               </span>
               Moveout Sales
             </a>
+            {user ? (
+              <Link className="nav-link nav-link-messages" to="/messages">
+                Messages
+                {unreadCount > 0 ? (
+                  <span className="nav-badge" aria-label={`${unreadCount} unread message${unreadCount !== 1 ? 's' : ''}`}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                ) : null}
+              </Link>
+            ) : null}
           </nav>
           <div className="nav-actions">
             {user ? (
@@ -153,19 +270,22 @@ const Home = () => {
                   type="button"
                   onClick={() => setMenuOpen((prev) => !prev)}
                   aria-expanded={menuOpen}
+                  aria-label={`${user.firstName || 'User'} profile menu, ${menuOpen ? 'expanded' : 'collapsed'}`}
+                  aria-haspopup="menu"
                 >
                   {initials}
                 </button>
                 {menuOpen ? (
-                  <div className="profile-dropdown">
+                  <div className="profile-dropdown" role="menu" aria-label="Profile settings menu">
                     <p className="profile-title">Update housing profile</p>
-                    <form className="profile-form" onSubmit={handleProfileSubmit}>
+                    <form className="profile-form" onSubmit={handleProfileSubmit} aria-label="Housing profile form">
                       <label className="field">
                         <span>Campus</span>
                         <select
                           name="campus"
                           value={profileForm.campus}
                           onChange={handleProfileChange}
+                          aria-label="Select your campus"
                         >
                           <option value="">Select campus</option>
                           <option value="UMass Amherst">UMass Amherst</option>
@@ -184,16 +304,18 @@ const Home = () => {
                             value={profileForm.budgetMin}
                             onChange={handleProfileChange}
                             placeholder="$500"
-                          />
-                        </label>
-                        <label className="field">
-                          <span>Budget max</span>
-                          <input
-                            type="number"
-                            name="budgetMax"
-                            value={profileForm.budgetMax}
-                            onChange={handleProfileChange}
-                            placeholder="$1200"
+                          aria-label="Minimum budget for housing"
+                        />
+                      </label>
+                      <label className="field">
+                        <span>Budget max</span>
+                        <input
+                          type="number"
+                          name="budgetMax"
+                          value={profileForm.budgetMax}
+                          onChange={handleProfileChange}
+                          placeholder="$1200"
+                          aria-label="Maximum budget for housing"
                           />
                         </label>
                       </div>
@@ -203,6 +325,7 @@ const Home = () => {
                           name="smokingPreference"
                           value={profileForm.smokingPreference}
                           onChange={handleProfileChange}
+                          aria-label="Select your smoking preference"
                         >
                           <option value="NO">Non-smoker</option>
                           <option value="OCC">Occasional</option>
@@ -215,6 +338,7 @@ const Home = () => {
                           name="drinkingPreference"
                           value={profileForm.drinkingPreference}
                           onChange={handleProfileChange}
+                          aria-label="Select your drinking preference"
                         >
                           <option value="NEVER">Never</option>
                           <option value="SOCIALLY">Socially</option>
@@ -227,6 +351,7 @@ const Home = () => {
                           name="sleepSchedule"
                           value={profileForm.sleepSchedule}
                           onChange={handleProfileChange}
+                          aria-label="Select your sleep schedule preference"
                         >
                           <option value="EARLY_BIRD">Early bird</option>
                           <option value="NIGHT_OWL">Night owl</option>

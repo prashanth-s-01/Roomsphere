@@ -111,6 +111,22 @@
   align-items: center;
   gap: 8px;
   padding: 6px 2px;
+  position: relative;
+}
+
+.nav-link-messages .nav-badge {
+  position: absolute;
+  top: -8px;
+  right: -12px;
+  background: #dc2626;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+  line-height: 1;
 }
 
 .nav-icon {
