@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, useRef, type ChangeEvent, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { postJson } from '../lib/api'
+import { getJson, getWebSocketBase, postJson } from '../lib/api'
 
 type StoredUser = {
   email: string
@@ -9,10 +9,18 @@ type StoredUser = {
   campus?: string
 }
 
+type ConversationSummary = {
+  id: string
+  unread_count: number
+}
+
 const Home = () => {
   const [user, setUser] = useState<StoredUser | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [profileStatus, setProfileStatus] = useState('')
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [_conversations, setConversations] = useState<ConversationSummary[]>([])
+  const inboxSocketRef = useRef<WebSocket | null>(null)
   const [profileForm, setProfileForm] = useState({
     campus: '',
     budgetMin: '',
@@ -40,6 +48,93 @@ const Home = () => {
       setUser(null)
     }
   }, [])
+
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      const stored = localStorage.getItem('roomsphereUser')
+      if (!stored) return
+
+      try {
+        const parsed = JSON.parse(stored) as StoredUser
+        const result = await getJson('/messages/conversations/', { email: parsed.email })
+        const nextConversations = Array.isArray(result.conversations)
+          ? (result.conversations as ConversationSummary[])
+          : []
+        setConversations(nextConversations)
+        const total = nextConversations.reduce((sum, conv) => sum + (conv.unread_count || 0), 0)
+        setUnreadCount(total)
+      } catch {
+        // silently fail
+      }
+    }
+
+    const connectInboxSocket = () => {
+      const stored = localStorage.getItem('roomsphereUser')
+      if (!stored) return
+
+      try {
+        const parsed = JSON.parse(stored) as StoredUser
+        const wsUrl = `${getWebSocketBase()}/ws/messages/inbox/?email=${encodeURIComponent(parsed.email)}`
+        const socket = new WebSocket(wsUrl)
+
+        socket.onopen = () => {
+          // Connection established
+        }
+
+        socket.onmessage = (event) => {
+          try {
+            const payload = JSON.parse(event.data) as {
+              type?: string
+              conversations?: ConversationSummary[]
+              conversation?: ConversationSummary
+            }
+
+            // Handle full inbox snapshot
+            if (payload.type === 'inbox.snapshot' && Array.isArray(payload.conversations)) {
+              setConversations(payload.conversations)
+              const total = payload.conversations.reduce((sum, conv) => sum + (conv.unread_count || 0), 0)
+              setUnreadCount(total)
+            }
+
+            // Handle single conversation update
+            if (payload.type === 'inbox.updated' && payload.conversation) {
+              setConversations((previous) => {
+                const updated = previous.map((conv) =>
+                  conv.id === payload.conversation!.id ? payload.conversation! : conv,
+                )
+                const total = updated.reduce((sum, conv) => sum + (conv.unread_count || 0), 0)
+                setUnreadCount(total)
+                return updated
+              })
+            }
+          } catch {
+            // silently fail
+          }
+        }
+
+        socket.onerror = () => {
+          // Connection error
+        }
+
+        socket.onclose = () => {
+          // Connection closed, will reconnect on next effect
+        }
+
+        inboxSocketRef.current = socket
+      } catch {
+        // silently fail
+      }
+    }
+
+    fetchUnreadCount()
+    connectInboxSocket()
+
+    return () => {
+      if (inboxSocketRef.current) {
+        inboxSocketRef.current.close()
+      }
+    }
+  }, [user])
 
   const initials = useMemo(() => {
     if (!user) return 'U'
@@ -145,8 +240,13 @@ const Home = () => {
               Moveout Sales
             </a>
             {user ? (
-              <Link className="nav-link" to="/messages">
+              <Link className="nav-link nav-link-messages" to="/messages">
                 Messages
+                {unreadCount > 0 ? (
+                  <span className="nav-badge" aria-label={`${unreadCount} unread message${unreadCount !== 1 ? 's' : ''}`}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                ) : null}
               </Link>
             ) : null}
           </nav>
