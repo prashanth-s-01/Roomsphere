@@ -454,7 +454,7 @@ const Home = () => {
               <Link to="/login" className="btn btn-primary">
                 Browse Items
               </Link>
-              <Link to="/signup" className="btn btn-light">
+              <Link to="/post-item" className="btn btn-light">
                 Post Item
               </Link>
             </div>

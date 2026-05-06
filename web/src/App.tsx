@@ -3,6 +3,7 @@ import Home from './pages/Home'
 import Login from './pages/Login'
 import Messages from './pages/Messages'
 import Signup from './pages/Signup'
+import PostItem from './pages/PostItem'
 import './App.css'
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/messages" element={<Messages />} />
+        <Route path="/post-item" element={<PostItem />} />
       </Routes>
     </Router>
   )
