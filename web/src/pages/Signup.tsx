@@ -1,8 +1,9 @@
-import { useState, type ChangeEvent, type FormEvent, useEffect } from 'react'
+import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { postJson } from '../lib/api'
 import { allowedCollegeDomainsText, isAllowedCollegeEmail, initEmailJS, generateOTP, sendOTPEmail } from '../lib/email'
 import OTPDialog from '../components/OTPDialog'
+import { useAutoClearMessage } from '../lib/useAutoClearMessage'
 
 const Signup = () => {
   const navigate = useNavigate()
@@ -28,6 +29,12 @@ const Signup = () => {
   useEffect(() => {
     initEmailJS()
   }, [])
+
+  const clearError = useCallback(() => setError(''), [])
+  const clearSuccess = useCallback(() => setSuccess(''), [])
+
+  useAutoClearMessage(error, clearError)
+  useAutoClearMessage(success, clearSuccess)
 
   const handleChange = (
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,

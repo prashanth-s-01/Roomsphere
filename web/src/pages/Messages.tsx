@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type MutableRefObject } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type MutableRefObject } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { getJson, getWebSocketBase, postJson } from '../lib/api'
 import { playMessagePing } from '../lib/notificationSound'
+import { useAutoClearMessage } from '../lib/useAutoClearMessage'
 import '../styles/Messages.css'
 
 type StoredUser = {
@@ -77,9 +78,13 @@ const Messages = () => {
   const [newThreadEmail, setNewThreadEmail] = useState('')
   const [showComposer, setShowComposer] = useState(false)
   const composerRef = useRef<HTMLTextAreaElement | null>(null)
+  const threadEndRef = useRef<HTMLDivElement | null>(null)
   const inboxSocketRef = useRef<WebSocket | null>(null)
   const threadSocketRef = useRef<WebSocket | null>(null)
   const websocketBase = useMemo(() => getWebSocketBase(), [])
+  const clearError = useCallback(() => setError(''), [])
+
+  useAutoClearMessage(error, clearError)
 
   const currentEmail = currentUser?.email ?? storedUser?.email ?? ''
 
@@ -279,6 +284,18 @@ const Messages = () => {
       composerRef.current.style.height = `${Math.min(composerRef.current.scrollHeight, 132)}px`
     }
   }, [messageBody, thread])
+
+  useEffect(() => {
+    if (!thread || !threadEndRef.current) {
+      return
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      threadEndRef.current?.scrollIntoView({ block: 'end' })
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [selectedConversationId, thread?.conversation.id, thread?.messages.length])
 
   const filteredConversations = useMemo(() => {
     const lowered = contactSearch.trim().toLowerCase()
@@ -550,6 +567,7 @@ const Messages = () => {
                     </div>
                   </article>
                 ))}
+                <div ref={threadEndRef} />
               </div>
 
               <form className="composer" onSubmit={handleSendMessage}>

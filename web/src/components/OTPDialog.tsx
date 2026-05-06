@@ -1,5 +1,6 @@
-import { useState, type ChangeEvent } from 'react'
+import { useCallback, useState, type ChangeEvent } from 'react'
 import '../styles/OTPDialog.css'
+import { useAutoClearMessage } from '../lib/useAutoClearMessage'
 
 interface OTPDialogProps {
   email: string
@@ -11,6 +12,9 @@ interface OTPDialogProps {
 const OTPDialog = ({ email, onSubmit, onCancel, isLoading }: OTPDialogProps) => {
   const [otp, setOtp] = useState('')
   const [error, setError] = useState('')
+  const clearError = useCallback(() => setError(''), [])
+
+  useAutoClearMessage(error, clearError)
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, '').slice(0, 6)

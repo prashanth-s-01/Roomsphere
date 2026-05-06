@@ -331,6 +331,7 @@
   gap: 16px;
   padding: 28px;
   overflow: auto;
+  scroll-behavior: smooth;
   background:
     radial-gradient(circle at top right, rgba(91, 92, 226, 0.04), transparent 26%),
     linear-gradient(180deg, #ffffff 0%, #fafbff 100%);

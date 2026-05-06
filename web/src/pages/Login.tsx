@@ -1,7 +1,8 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { useCallback, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { postJson } from '../lib/api'
 import { allowedCollegeDomainsText, isAllowedCollegeEmail } from '../lib/email'
+import { useAutoClearMessage } from '../lib/useAutoClearMessage'
 
 const Login = () => {
   const navigate = useNavigate()
@@ -18,6 +19,10 @@ const Login = () => {
     const { name, value } = event.target
     setForm((prev) => ({ ...prev, [name]: value }))
   }
+
+  const clearError = useCallback(() => setError(''), [])
+
+  useAutoClearMessage(error, clearError)
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
