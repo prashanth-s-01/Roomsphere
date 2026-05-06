@@ -144,6 +144,11 @@ const Home = () => {
               </span>
               Moveout Sales
             </a>
+            {user ? (
+              <Link className="nav-link" to="/messages">
+                Messages
+              </Link>
+            ) : null}
           </nav>
           <div className="nav-actions">
             {user ? (

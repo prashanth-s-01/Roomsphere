@@ -21,4 +21,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     # authentication APIs
     path("api/auth/", include("app.urls")),
+    path("api/messages/", include("app.message_urls")),
 ]
