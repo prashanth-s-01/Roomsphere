@@ -229,7 +229,7 @@ const Home = () => {
             </span>
           </Link>
           <nav className="nav-links">
-            <a className="nav-link" href="#roommates">
+            <a className="nav-link" href="#roommates" aria-label="Navigate to roommates section">
               <span className="nav-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
                   <path
@@ -240,7 +240,7 @@ const Home = () => {
               </span>
               Roommates
             </a>
-            <a className="nav-link" href="#moveout">
+            <a className="nav-link" href="#moveout" aria-label="Navigate to moveout sales section">
               <span className="nav-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
                   <path
@@ -270,19 +270,22 @@ const Home = () => {
                   type="button"
                   onClick={() => setMenuOpen((prev) => !prev)}
                   aria-expanded={menuOpen}
+                  aria-label={`${user.firstName || 'User'} profile menu, ${menuOpen ? 'expanded' : 'collapsed'}`}
+                  aria-haspopup="menu"
                 >
                   {initials}
                 </button>
                 {menuOpen ? (
-                  <div className="profile-dropdown">
+                  <div className="profile-dropdown" role="menu" aria-label="Profile settings menu">
                     <p className="profile-title">Update housing profile</p>
-                    <form className="profile-form" onSubmit={handleProfileSubmit}>
+                    <form className="profile-form" onSubmit={handleProfileSubmit} aria-label="Housing profile form">
                       <label className="field">
                         <span>Campus</span>
                         <select
                           name="campus"
                           value={profileForm.campus}
                           onChange={handleProfileChange}
+                          aria-label="Select your campus"
                         >
                           <option value="">Select campus</option>
                           <option value="UMass Amherst">UMass Amherst</option>
@@ -301,16 +304,18 @@ const Home = () => {
                             value={profileForm.budgetMin}
                             onChange={handleProfileChange}
                             placeholder="$500"
-                          />
-                        </label>
-                        <label className="field">
-                          <span>Budget max</span>
-                          <input
-                            type="number"
-                            name="budgetMax"
-                            value={profileForm.budgetMax}
-                            onChange={handleProfileChange}
-                            placeholder="$1200"
+                          aria-label="Minimum budget for housing"
+                        />
+                      </label>
+                      <label className="field">
+                        <span>Budget max</span>
+                        <input
+                          type="number"
+                          name="budgetMax"
+                          value={profileForm.budgetMax}
+                          onChange={handleProfileChange}
+                          placeholder="$1200"
+                          aria-label="Maximum budget for housing"
                           />
                         </label>
                       </div>
@@ -320,6 +325,7 @@ const Home = () => {
                           name="smokingPreference"
                           value={profileForm.smokingPreference}
                           onChange={handleProfileChange}
+                          aria-label="Select your smoking preference"
                         >
                           <option value="NO">Non-smoker</option>
                           <option value="OCC">Occasional</option>
@@ -332,6 +338,7 @@ const Home = () => {
                           name="drinkingPreference"
                           value={profileForm.drinkingPreference}
                           onChange={handleProfileChange}
+                          aria-label="Select your drinking preference"
                         >
                           <option value="NEVER">Never</option>
                           <option value="SOCIALLY">Socially</option>
@@ -344,6 +351,7 @@ const Home = () => {
                           name="sleepSchedule"
                           value={profileForm.sleepSchedule}
                           onChange={handleProfileChange}
+                          aria-label="Select your sleep schedule preference"
                         >
                           <option value="EARLY_BIRD">Early bird</option>
                           <option value="NIGHT_OWL">Night owl</option>

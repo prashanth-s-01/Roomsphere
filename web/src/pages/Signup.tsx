@@ -166,7 +166,7 @@ const Signup = () => {
               Start with your campus email so we can keep the network verified and secure.
             </p>
           </div>
-          <form className="auth-form" onSubmit={handleSubmit}>
+          <form className="auth-form" onSubmit={handleSubmit} aria-label="Create account form">
             <p className="auth-section-title">About you</p>
             <div className="form-grid">
               <label className="field">
@@ -179,6 +179,7 @@ const Signup = () => {
                   value={form.firstName}
                   onChange={handleChange}
                   required
+                  aria-label="Your first name"
                 />
               </label>
               <label className="field">
@@ -191,17 +192,18 @@ const Signup = () => {
                   value={form.lastName}
                   onChange={handleChange}
                   required
+                  aria-label="Your last name"
                 />
               </label>
             </div>
             <div className="form-grid">
               <label className="field">
                 <span>Date of birth</span>
-                <input type="date" name="dob" value={form.dob} onChange={handleChange} required />
+                <input type="date" name="dob" value={form.dob} onChange={handleChange} required aria-label="Your date of birth" />
               </label>
               <label className="field">
                 <span>Gender</span>
-                <select name="gender" value={form.gender} onChange={handleChange}>
+                <select name="gender" value={form.gender} onChange={handleChange} aria-label="Your gender">
                   <option value="MALE">Male</option>
                   <option value="FEMALE">Female</option>
                   <option value="NON_BINARY">Non-binary</option>
@@ -213,7 +215,7 @@ const Signup = () => {
             <p className="auth-section-title">Campus details</p>
             <label className="field">
               <span>Campus</span>
-              <select name="campus" value={form.campus} onChange={handleChange} required>
+              <select name="campus" value={form.campus} onChange={handleChange} required aria-label="Select your campus">
                 <option value="" disabled>
                   Select your campus
                 </option>
@@ -234,8 +236,10 @@ const Signup = () => {
                 value={form.email}
                 onChange={handleChange}
                 required
+                aria-label="Your campus email address"
+                aria-describedby="email-help"
               />
-              <span className="field-help">
+              <span id="email-help" className="field-help">
                 Accepted domains: {allowedCollegeDomainsText()}.
               </span>
             </label>
@@ -249,8 +253,10 @@ const Signup = () => {
                 inputMode="tel"
                 value={form.phoneNumber}
                 onChange={handleChange}
+                aria-label="Your phone number (optional)"
+                aria-describedby="phone-help"
               />
-              <span className="field-help">Used only for urgent housing coordination.</span>
+              <span id="phone-help" className="field-help">Used only for urgent housing coordination.</span>
             </label>
             <p className="auth-section-title">Security</p>
             <div className="form-grid">
@@ -265,8 +271,10 @@ const Signup = () => {
                   value={form.password}
                   onChange={handleChange}
                   required
+                  aria-label="Create a password"
+                  aria-describedby="password-help"
                 />
-                <span className="field-help">At least 8 characters.</span>
+                <span id="password-help" className="field-help">At least 8 characters.</span>
               </label>
               <label className="field">
                 <span>Confirm password</span>
@@ -279,20 +287,25 @@ const Signup = () => {
                   value={form.confirmPassword}
                   onChange={handleChange}
                   required
+                  aria-label="Confirm your password"
                 />
               </label>
             </div>
             <label className="checkbox">
-              <input type="checkbox" required />
+              <input type="checkbox" required aria-label="I agree to the community guidelines and listing standards" />
               <span>I agree to the community guidelines and listing standards.</span>
             </label>
             {error ? (
-              <p className="form-error" role="alert">
+              <p className="form-error" role="alert" aria-live="polite" aria-atomic="true">
                 {error}
               </p>
             ) : null}
-            {success ? <p className="form-success">{success}</p> : null}
-            <button className="btn btn-primary" type="submit" disabled={loading}>
+            {success ? (
+              <p className="form-success" role="status" aria-live="polite" aria-atomic="true">
+                {success}
+              </p>
+            ) : null}
+            <button className="btn btn-primary" type="submit" disabled={loading} aria-busy={loading} aria-label={loading ? 'Creating account, please wait' : 'Create account'}>
               {loading ? 'Creating account...' : 'Create account'}
             </button>
           </form>

@@ -410,7 +410,7 @@ const Messages = () => {
             <Link to="/" className="messages-link">
               Home
             </Link>
-            <button className="messages-new-button" type="button" onClick={() => setShowComposer(true)}>
+            <button className="messages-new-button" type="button" onClick={() => setShowComposer(true)} aria-label="Start new conversation">
               New message
             </button>
           </div>
@@ -424,8 +424,8 @@ const Messages = () => {
               <p className="sidebar-eyebrow">Messages</p>
               <h1>Inbox</h1>
             </div>
-            <div className="current-user-chip" title={currentEmail}>
-              <span>{currentUserLabel.slice(0, 2).toUpperCase()}</span>
+            <div className="current-user-chip" title={currentEmail} aria-label={`Currently logged in as ${currentEmail}`}>
+              <span aria-hidden="true">{currentUserLabel.slice(0, 2).toUpperCase()}</span>
             </div>
           </div>
 
@@ -467,17 +467,19 @@ const Messages = () => {
                   type="button"
                   className={`conversation-item ${active ? 'active' : ''}`}
                   onClick={() => setSelectedConversationId(conversation.id)}
+                  aria-label={`Conversation with ${participant.display_name}, ${conversation.preview}${conversation.has_unread ? ', unread' : ''}`}
+                  aria-current={active ? 'true' : 'false'}
                 >
-                  <div className="conversation-avatar">{participant.initials}</div>
+                  <div className="conversation-avatar" aria-hidden="true">{participant.initials}</div>
                   <div className="conversation-copy">
                     <div className="conversation-row">
                       <strong>{participant.display_name}</strong>
-                      <span>{conversation.time_label}</span>
+                      <span aria-label={`Last message ${conversation.time_label}`}>{conversation.time_label}</span>
                     </div>
                     <p className="conversation-subtitle">{participant.campus || participant.email}</p>
                     <p className="conversation-preview">{conversation.preview}</p>
                   </div>
-                  {conversation.has_unread ? <span className="conversation-dot" aria-hidden="true" /> : null}
+                  {conversation.has_unread ? <span className="conversation-dot" aria-label="Unread message indicator" /> : null}
                 </button>
               )
             })}
@@ -489,10 +491,10 @@ const Messages = () => {
             <>
               <header className="thread-header">
                 <div className="thread-participant">
-                  <div className="conversation-avatar thread-avatar">{selectedConversation.participant.initials}</div>
+                  <div className="conversation-avatar thread-avatar" aria-hidden="true">{selectedConversation.participant.initials}</div>
                   <div>
                     <h2>{selectedConversation.participant.display_name}</h2>
-                    <p>{selectedConversation.participant.campus || selectedConversation.participant.email}</p>
+                    <p aria-label={`${selectedConversation.participant.display_name} campus: ${selectedConversation.participant.campus || selectedConversation.participant.email}`}>{selectedConversation.participant.campus || selectedConversation.participant.email}</p>
                   </div>
                 </div>
 
@@ -500,10 +502,11 @@ const Messages = () => {
                   <button
                     type="button"
                     className="thread-icon-button"
-                    aria-label="Search in thread"
+                    aria-label={`${showThreadSearch ? 'Hide' : 'Show'} search in thread`}
+                    aria-pressed={showThreadSearch}
                     onClick={() => setShowThreadSearch((previous) => !previous)}
                   >
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
                       <path
                         d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Zm5.5-1.5L21 21"
                         stroke="currentColor"
@@ -512,8 +515,8 @@ const Messages = () => {
                       />
                     </svg>
                   </button>
-                  <button type="button" className="thread-icon-button" aria-label="Conversation details">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+                  <button type="button" className="thread-icon-button" aria-label="View conversation details">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
                       <path
                         d="M5 12h14M12 5v14"
                         stroke="currentColor"
@@ -566,28 +569,30 @@ const Messages = () => {
                   <article
                     key={message.id}
                     className={`message-row ${message.is_current_user ? 'message-row-self' : 'message-row-other'}`}
+                    aria-label={`Message from ${message.is_current_user ? 'you' : message.sender.display_name} at ${new Date(message.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`}
                   >
                     {!message.is_current_user ? (
-                      <div className="message-avatar">{message.sender.initials}</div>
+                      <div className="message-avatar" aria-hidden="true">{message.sender.initials}</div>
                     ) : null}
                     <div className={`message-bubble ${message.is_current_user ? 'self' : 'other'}`}>
                       <p>{message.body}</p>
-                      <span>{new Date(message.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
+                      <span aria-label={`Sent at ${new Date(message.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`}>{new Date(message.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
                     </div>
                   </article>
                 ))}
                 <div ref={threadEndRef} />
               </div>
 
-              <form className="composer" onSubmit={handleSendMessage}>
+              <form className="composer" onSubmit={handleSendMessage} aria-label="Send message">
                 <textarea
                   ref={composerRef}
                   placeholder={`Message ${selectedConversation.participant.display_name}`}
                   value={messageBody}
                   onChange={(event) => setMessageBody(event.target.value)}
                   rows={1}
+                  aria-label={`Type your message to ${selectedConversation.participant.display_name}`}
                 />
-                <button className="composer-send" type="submit" disabled={!messageBody.trim()}>
+                <button className="composer-send" type="submit" disabled={!messageBody.trim()} aria-label="Send message">
                   Send
                 </button>
               </form>
@@ -596,7 +601,7 @@ const Messages = () => {
             <div className="empty-thread-state large">
               <h2>Select a conversation</h2>
               <p>Choose a thread from the inbox or start a new message.</p>
-              <button type="button" className="empty-action" onClick={() => setShowComposer(true)}>
+              <button type="button" className="empty-action" onClick={() => setShowComposer(true)} aria-label="Start a new conversation">
                 New message
               </button>
             </div>
@@ -606,14 +611,14 @@ const Messages = () => {
 
       {showComposer ? (
         <div className="composer-overlay" role="presentation" onClick={() => setShowComposer(false)}>
-          <div className="composer-modal" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+          <div className="composer-modal" role="dialog" aria-modal="true" aria-labelledby="composer-dialog-title" onClick={(event) => event.stopPropagation()}>
             <div className="composer-modal-header">
               <div>
                 <p className="sidebar-eyebrow">Start new conversation</p>
-                <h3>Message by email</h3>
+                <h3 id="composer-dialog-title">Message by email</h3>
               </div>
-              <button type="button" className="thread-icon-button" onClick={() => setShowComposer(false)}>
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+              <button type="button" className="thread-icon-button" onClick={() => setShowComposer(false)} aria-label="Close dialog">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
                   <path
                     d="M6 6l12 12M18 6 6 18"
                     stroke="currentColor"
@@ -623,7 +628,7 @@ const Messages = () => {
                 </svg>
               </button>
             </div>
-            <form className="composer-form" onSubmit={handleCreateConversation}>
+            <form className="composer-form" onSubmit={handleCreateConversation} aria-label="Create new conversation">
               <label className="field">
                 <span>Recipient email</span>
                 <input
@@ -633,7 +638,10 @@ const Messages = () => {
                   onChange={(event) => setNewThreadEmail(event.target.value)}
                   autoFocus
                   required
+                  aria-label="Recipient email address"
+                  aria-describedby="email-help"
                 />
+                <span id="email-help" className="field-help">Enter the email address of the person you want to message</span>
               </label>
               <div className="composer-modal-actions">
                 <button type="button" className="btn btn-outline" onClick={() => setShowComposer(false)}>
