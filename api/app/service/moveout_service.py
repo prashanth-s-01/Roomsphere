@@ -30,3 +30,17 @@ class MoveoutService:
             'message': 'Moveout item posted successfully',
             'item_id': str(moveout_item.id),
         }
+
+    @staticmethod
+    def get_all_moveout_items():
+        """Retrieve all moveout items from the database"""
+        items = MoveoutItem.objects.all()
+        return items
+
+    @staticmethod
+    def get_moveout_item_by_id(item_id):
+        """Retrieve a specific moveout item by ID"""
+        try:
+            return MoveoutItem.objects.get(id=item_id)
+        except MoveoutItem.DoesNotExist:
+            return None

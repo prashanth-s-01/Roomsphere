@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState, useRef, type ChangeEvent, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
-import { getJson, getWebSocketBase, postJson } from '../lib/api'
-import { playMessagePing } from '../lib/notificationSound'
-
-const log = (msg: string) => console.debug(`[Home] ${msg}`)
+import { useState, useEffect, useMemo, type ChangeEvent, type FormEvent } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { getJson, postJson } from '../lib/api'
+import ListingCard, { type ListingItem } from '../components/ListingCard'
+import '../styles/MoveOutSale.css'
 
 type StoredUser = {
   email: string
@@ -12,18 +11,21 @@ type StoredUser = {
   campus?: string
 }
 
-type ConversationSummary = {
-  id: string
-  unread_count: number
-}
+const MoveOutSale = () => {
+  const navigate = useNavigate()
+  const [items, setItems] = useState<ListingItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-const Home = () => {
+  const [selectedCollege, setSelectedCollege] = useState('all')
+  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [selectedCondition, setSelectedCondition] = useState('all')
+  const [maxBudget, setMaxBudget] = useState('')
+  const [sortBy, setSortBy] = useState('recent')
+
   const [user, setUser] = useState<StoredUser | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [profileStatus, setProfileStatus] = useState('')
-  const [unreadCount, setUnreadCount] = useState(0)
-  const [_conversations, setConversations] = useState<ConversationSummary[]>([])
-  const inboxSocketRef = useRef<WebSocket | null>(null)
   const [profileForm, setProfileForm] = useState({
     campus: '',
     budgetMin: '',
@@ -51,102 +53,6 @@ const Home = () => {
       setUser(null)
     }
   }, [])
-
-  useEffect(() => {
-    const fetchUnreadCount = async () => {
-      const stored = localStorage.getItem('roomsphereUser')
-      if (!stored) return
-
-      try {
-        const parsed = JSON.parse(stored) as StoredUser
-        const result = await getJson('/messages/conversations/', { email: parsed.email })
-        const nextConversations = Array.isArray(result.conversations)
-          ? (result.conversations as ConversationSummary[])
-          : []
-        setConversations(nextConversations)
-        const total = nextConversations.reduce((sum, conv) => sum + (conv.unread_count || 0), 0)
-        log(`Initial unread count: ${total}`)
-        setUnreadCount(total)
-      } catch {
-        // silently fail
-      }
-    }
-
-    const connectInboxSocket = () => {
-      const stored = localStorage.getItem('roomsphereUser')
-      if (!stored) return
-
-      try {
-        const parsed = JSON.parse(stored) as StoredUser
-        const wsUrl = `${getWebSocketBase()}/ws/messages/inbox/?email=${encodeURIComponent(parsed.email)}`
-        const socket = new WebSocket(wsUrl)
-
-        socket.onopen = () => {
-          // Connection established
-        }
-
-        socket.onmessage = (event) => {
-          try {
-            const payload = JSON.parse(event.data) as {
-              type?: string
-              conversations?: ConversationSummary[]
-              conversation?: ConversationSummary
-            }
-
-            // Handle full inbox snapshot
-            if (payload.type === 'inbox.snapshot' && Array.isArray(payload.conversations)) {
-              setConversations(payload.conversations)
-              const total = payload.conversations.reduce((sum, conv) => sum + (conv.unread_count || 0), 0)
-              log(`Inbox snapshot: ${total} unread`)
-              setUnreadCount(total)
-            }
-
-            // Handle single conversation update
-            if (payload.type === 'inbox.updated' && payload.conversation) {
-              setConversations((previous) => {
-                const nextConversation = payload.conversation!
-                const previousConversation = previous.find((conv) => conv.id === nextConversation.id)
-                const updated = previous.map((conv) => (conv.id === nextConversation.id ? nextConversation : conv))
-                const total = updated.reduce((sum, conv) => sum + (conv.unread_count || 0), 0)
-                const prevTotal = previous.reduce((sum, conv) => sum + (conv.unread_count || 0), 0)
-                log(`Unread updated: ${prevTotal} → ${total}`)
-                setUnreadCount(total)
-
-                if ((nextConversation.unread_count || 0) > (previousConversation?.unread_count || 0)) {
-                  void playMessagePing()
-                }
-
-                return updated
-              })
-            }
-          } catch {
-            // silently fail
-          }
-        }
-
-        socket.onerror = () => {
-          // Connection error
-        }
-
-        socket.onclose = () => {
-          // Connection closed, will reconnect on next effect
-        }
-
-        inboxSocketRef.current = socket
-      } catch {
-        // silently fail
-      }
-    }
-
-    fetchUnreadCount()
-    connectInboxSocket()
-
-    return () => {
-      if (inboxSocketRef.current) {
-        inboxSocketRef.current.close()
-      }
-    }
-  }, [user])
 
   const initials = useMemo(() => {
     if (!user) return 'U'
@@ -210,8 +116,76 @@ const Home = () => {
     })
   }
 
+  const handleResetFilters = () => {
+    setSelectedCollege('all')
+    setSelectedCategory('all')
+    setSelectedCondition('all')
+    setMaxBudget('')
+    setSortBy('recent')
+  }
+
+  // Extract unique values for filters
+  const colleges = useMemo(() => {
+    const unique = [...new Set(items.map((item) => item.location))]
+    return unique.sort()
+  }, [items])
+
+  const categories = useMemo(() => {
+    const unique = [...new Set(items.map((item) => item.category))]
+    return unique.sort()
+  }, [items])
+
+  const conditions = ['NEW', 'GOOD', 'FAIR', 'USED', 'DAMAGED']
+
+  // Fetch moveout items from API
+  useEffect(() => {
+    const fetchMoveoutItems = async () => {
+      try {
+        setLoading(true)
+        const response = await getJson('/auth/moveout/')
+        // Handle both array and object responses
+        const data = Array.isArray(response.items) ? response.items : response.items || []
+        setItems(data as ListingItem[])
+        setError(null)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load moveout items')
+        setItems([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchMoveoutItems()
+  }, [])
+
+  // Filter and sort items
+  const filteredItems = useMemo(() => {
+    let filtered = items.filter((item) => {
+      if (selectedCollege !== 'all' && item.location !== selectedCollege) return false
+      if (selectedCategory !== 'all' && item.category !== selectedCategory) return false
+      if (selectedCondition !== 'all' && item.condition !== selectedCondition) return false
+      
+      // Max budget filter
+      const itemPrice = Number(item.price) || 0
+      if (maxBudget && itemPrice > Number(maxBudget)) return false
+      
+      return true
+    })
+
+    // Sort
+    if (sortBy === 'recent') {
+      filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    } else if (sortBy === 'price-low') {
+      filtered.sort((a, b) => (a.price || 0) - (b.price || 0))
+    } else if (sortBy === 'price-high') {
+      filtered.sort((a, b) => (b.price || 0) - (a.price || 0))
+    }
+
+    return filtered
+  }, [items, selectedCollege, selectedCategory, selectedCondition, maxBudget, sortBy])
+
   return (
-    <div className="page">
+    <div className="moveout-sale-page">
       <header className="home-header">
         <div className="home-nav container">
           <Link to="/" className="brand">
@@ -229,7 +203,7 @@ const Home = () => {
             </span>
           </Link>
           <nav className="nav-links">
-            <a className="nav-link" href="#roommates" aria-label="Navigate to roommates section">
+            <Link to="/" className="nav-link">
               <span className="nav-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
                   <path
@@ -239,8 +213,8 @@ const Home = () => {
                 </svg>
               </span>
               Roommates
-            </a>
-            <a className="nav-link" href="#moveout" aria-label="Navigate to moveout sales section">
+            </Link>
+            <Link to="/moveout-sale" className="nav-link">
               <span className="nav-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
                   <path
@@ -250,17 +224,7 @@ const Home = () => {
                 </svg>
               </span>
               Moveout Sales
-            </a>
-            {user ? (
-              <Link className="nav-link nav-link-messages" to="/messages">
-                Messages
-                {unreadCount > 0 ? (
-                  <span className="nav-badge" aria-label={`${unreadCount} unread message${unreadCount !== 1 ? 's' : ''}`}>
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </span>
-                ) : null}
-              </Link>
-            ) : null}
+            </Link>
           </nav>
           <div className="nav-actions">
             {user ? (
@@ -270,22 +234,19 @@ const Home = () => {
                   type="button"
                   onClick={() => setMenuOpen((prev) => !prev)}
                   aria-expanded={menuOpen}
-                  aria-label={`${user.firstName || 'User'} profile menu, ${menuOpen ? 'expanded' : 'collapsed'}`}
-                  aria-haspopup="menu"
                 >
                   {initials}
                 </button>
                 {menuOpen ? (
-                  <div className="profile-dropdown" role="menu" aria-label="Profile settings menu">
+                  <div className="profile-dropdown">
                     <p className="profile-title">Update housing profile</p>
-                    <form className="profile-form" onSubmit={handleProfileSubmit} aria-label="Housing profile form">
+                    <form className="profile-form" onSubmit={handleProfileSubmit}>
                       <label className="field">
                         <span>Campus</span>
                         <select
                           name="campus"
                           value={profileForm.campus}
                           onChange={handleProfileChange}
-                          aria-label="Select your campus"
                         >
                           <option value="">Select campus</option>
                           <option value="UMass Amherst">UMass Amherst</option>
@@ -304,18 +265,16 @@ const Home = () => {
                             value={profileForm.budgetMin}
                             onChange={handleProfileChange}
                             placeholder="$500"
-                          aria-label="Minimum budget for housing"
-                        />
-                      </label>
-                      <label className="field">
-                        <span>Budget max</span>
-                        <input
-                          type="number"
-                          name="budgetMax"
-                          value={profileForm.budgetMax}
-                          onChange={handleProfileChange}
-                          placeholder="$1200"
-                          aria-label="Maximum budget for housing"
+                          />
+                        </label>
+                        <label className="field">
+                          <span>Budget max</span>
+                          <input
+                            type="number"
+                            name="budgetMax"
+                            value={profileForm.budgetMax}
+                            onChange={handleProfileChange}
+                            placeholder="$1200"
                           />
                         </label>
                       </div>
@@ -325,7 +284,6 @@ const Home = () => {
                           name="smokingPreference"
                           value={profileForm.smokingPreference}
                           onChange={handleProfileChange}
-                          aria-label="Select your smoking preference"
                         >
                           <option value="NO">Non-smoker</option>
                           <option value="OCC">Occasional</option>
@@ -338,7 +296,6 @@ const Home = () => {
                           name="drinkingPreference"
                           value={profileForm.drinkingPreference}
                           onChange={handleProfileChange}
-                          aria-label="Select your drinking preference"
                         >
                           <option value="NEVER">Never</option>
                           <option value="SOCIALLY">Socially</option>
@@ -351,7 +308,6 @@ const Home = () => {
                           name="sleepSchedule"
                           value={profileForm.sleepSchedule}
                           onChange={handleProfileChange}
-                          aria-label="Select your sleep schedule preference"
                         >
                           <option value="EARLY_BIRD">Early bird</option>
                           <option value="NIGHT_OWL">Night owl</option>
@@ -393,95 +349,133 @@ const Home = () => {
         </div>
       </header>
 
-      <main className="container">
-        <section className="home-hero">
-          <span className="hero-badge">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
-              <path
-                d="M4 9l8-4 8 4-8 4-8-4Zm3 4.5 5 2.5 5-2.5v3l-5 2.5-5-2.5v-3Z"
-                fill="currentColor"
-              />
-            </svg>
-            Exclusive to 5 College Consortium
-          </span>
-          <h1 className="hero-title">Connect, Find, and Sell</h1>
-          <p className="hero-sub">
-            Your one-stop platform for finding roommates and buying moveout items across UMass Amherst,
-            Amherst, Hampshire, Smith, and Mount Holyoke.
-          </p>
-        </section>
+      <div className="moveout-content">
+        <div className="moveout-header-title">
+          <h1>Moveout Sales</h1>
+          <p>Browse items for sale from students moving out</p>
+          <Link to="/post-item" className="btn-post-item">
+            <span>+</span>
+            Post Item
+          </Link>
+        </div>
 
-        <section className="feature-grid">
-          <article className="feature-card" id="roommates">
-            <div className="card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
-                <path
-                  d="M7.5 11.5a3 3 0 1 1 0-6 3 3 0 0 1 0 6Zm9 0a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Zm-9 2c-2.5 0-5 1.3-5 3.5v1h10v-1c0-2.2-2.5-3.5-5-3.5Zm9 0c-1 0-2 .2-2.8.6 1.2.9 1.8 2 1.8 3.4v1H21v-1c0-2.2-2.5-3.5-4.5-3.5Z"
-                  fill="currentColor"
-                />
-              </svg>
-            </div>
-            <h3>Roommate Finder</h3>
-            <p>
-              Post apartment vacancies or browse available rooms near campus. Connect with potential
-              roommates from across the consortium.
-            </p>
-            <div className="feature-actions">
-              <Link to="/login" className="btn btn-primary">
-                Browse Listings
-              </Link>
-              <Link to="/signup" className="btn btn-light">
-                Post Vacancy
-              </Link>
-            </div>
-          </article>
+        <div className="filters-container">
+        <div className="filter-group">
+          <label htmlFor="college-filter">College</label>
+          <select
+            id="college-filter"
+            value={selectedCollege}
+            onChange={(e) => setSelectedCollege(e.target.value)}
+            className="filter-select"
+          >
+            <option value="all">All Colleges</option>
+            {colleges.map((college) => (
+              <option key={college} value={college}>
+                {college}
+              </option>
+            ))}
+          </select>
+        </div>
 
-          <article className="feature-card" id="moveout">
-            <div className="card-icon green" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
-                <path
-                  d="M6 7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2h-2V7H8v2H6V7Zm-1 5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-6Zm5 2v2h4v-2h-4Z"
-                  fill="currentColor"
-                />
-              </svg>
-            </div>
-            <h3>Moveout Sales</h3>
-            <p>
-              Buy or sell furniture, electronics, textbooks, and more. Perfect for students moving in
-              or out of the area.
-            </p>
-            <div className="feature-actions">
-              <Link to="/moveout-sale" className="btn btn-primary">
-                Browse Items
-              </Link>
-              <Link to="/post-item" className="btn btn-light">
-                Post Item
-              </Link>
-            </div>
-          </article>
-        </section>
+        <div className="filter-group">
+          <label htmlFor="category-filter">Category</label>
+          <select
+            id="category-filter"
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="filter-select"
+          >
+            <option value="all">All Categories</option>
+            {categories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+        </div>
 
-        <section className="consortium">
-          <div className="consortium-title">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
-              <path
-                d="M12 22a7 7 0 1 0-7-7c0 3.9 7 7 7 7Zm0-9a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z"
-                fill="currentColor"
-              />
-            </svg>
-            Serving the 5 College Consortium
+        <div className="filter-group">
+          <label htmlFor="condition-filter">Condition</label>
+          <select
+            id="condition-filter"
+            value={selectedCondition}
+            onChange={(e) => setSelectedCondition(e.target.value)}
+            className="filter-select"
+          >
+            <option value="all">All Conditions</option>
+            {conditions.map((condition) => (
+              <option key={condition} value={condition}>
+                {condition}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="filter-group">
+          <label htmlFor="max-budget-filter">Max Price</label>
+          <input
+            id="max-budget-filter"
+            type="number"
+            value={maxBudget}
+            onChange={(e) => setMaxBudget(e.target.value)}
+            placeholder="$10000"
+            className="filter-input"
+          />
+        </div>
+
+        <div className="filter-group">
+          <label htmlFor="sort-filter">Sort</label>
+          <select
+            id="sort-filter"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="filter-select"
+          >
+            <option value="recent">Most Recent</option>
+            <option value="price-low">Price: Low to High</option>
+            <option value="price-high">Price: High to Low</option>
+          </select>
+        </div>
+
+        <div className="filter-group">
+          <button
+            onClick={handleResetFilters}
+            className="btn-reset-filters"
+            type="button"
+          >
+            Reset Filters
+          </button>
+        </div>
+      </div>
+
+      <div className="listings-container">
+        {loading ? (
+          <div className="loading-state">
+            <p>Loading items...</p>
           </div>
-          <div className="consortium-list">
-            <span className="consortium-pill">UMass Amherst</span>
-            <span className="consortium-pill">Amherst College</span>
-            <span className="consortium-pill">Hampshire College</span>
-            <span className="consortium-pill">Smith College</span>
-            <span className="consortium-pill">Mount Holyoke</span>
+        ) : error ? (
+          <div className="error-state">
+            <p>Error: {error}</p>
           </div>
-        </section>
-      </main>
+        ) : filteredItems.length === 0 ? (
+          <div className="empty-state">
+            <p>No items found matching your filters</p>
+          </div>
+        ) : (
+          <div className="listings-grid">
+            {filteredItems.map((item) => (
+              <ListingCard
+                key={item.id}
+                item={item}
+                onClick={() => navigate(`/moveout-sale/${item.id}`)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+      </div>
     </div>
   )
 }
 
-export default Home
+export default MoveOutSale

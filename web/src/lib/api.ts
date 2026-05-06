@@ -30,9 +30,14 @@ const toQueryString = (params: Record<string, string | undefined>) => {
   return query ? `?${query}` : ''
 }
 
-export async function getJson(path: string, params: Record<string, string | undefined> = {}) {
+export async function getJson(path: string) {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`
-  const response = await fetch(`${API_BASE}${normalizedPath}${toQueryString(params)}`)
+  const response = await fetch(`${API_BASE}${normalizedPath}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
 
   let data: ApiResult = {}
   try {

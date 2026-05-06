@@ -4,6 +4,8 @@ import Login from './pages/Login'
 import Messages from './pages/Messages'
 import Signup from './pages/Signup'
 import PostItem from './pages/PostItem'
+import MoveOutSale from './pages/MoveOutSale'
+import ListingDetail from './pages/ListingDetail'
 import './App.css'
 
 function App() {
@@ -15,6 +17,8 @@ function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/messages" element={<Messages />} />
         <Route path="/post-item" element={<PostItem />} />
+        <Route path="/moveout-sale" element={<MoveOutSale />} />
+        <Route path="/moveout-sale/:id" element={<ListingDetail />} />
       </Routes>
     </Router>
   )
