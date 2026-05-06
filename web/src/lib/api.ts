@@ -81,3 +81,29 @@ export async function postJson(path: string, body: Record<string, unknown>) {
 
   return data
 }
+
+export async function postFormData(path: string, body: FormData) {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  const response = await fetch(`${API_BASE}${normalizedPath}`, {
+    method: 'POST',
+    body,
+  })
+
+  let data: ApiResult = {}
+  try {
+    data = await response.json()
+  } catch {
+    data = {}
+  }
+
+  if (!response.ok) {
+    const error = typeof data.error === 'string' ? data.error : 'Request failed'
+    throw new Error(error)
+  }
+
+  if (typeof data.error === 'string') {
+    throw new Error(data.error)
+  }
+
+  return data
+}
