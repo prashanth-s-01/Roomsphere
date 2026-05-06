@@ -2,6 +2,7 @@ from .users import User
 from .listing import Listing
 from .house_listing import HouseListing
 from .house_image import HouseListingImage
+from .moveout_item import MoveoutItem
 from .message import Message
 from .request import ListingRequest
 from .notification import Notification
