@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { getJson, getWebSocketBase, postJson } from '../lib/api'
 import { playMessagePing } from '../lib/notificationSound'
 
+const log = (msg: string) => console.debug(`[Home] ${msg}`)
+
 type StoredUser = {
   email: string
   firstName?: string
@@ -63,6 +65,7 @@ const Home = () => {
           : []
         setConversations(nextConversations)
         const total = nextConversations.reduce((sum, conv) => sum + (conv.unread_count || 0), 0)
+        log(`Initial unread count: ${total}`)
         setUnreadCount(total)
       } catch {
         // silently fail
@@ -94,6 +97,7 @@ const Home = () => {
             if (payload.type === 'inbox.snapshot' && Array.isArray(payload.conversations)) {
               setConversations(payload.conversations)
               const total = payload.conversations.reduce((sum, conv) => sum + (conv.unread_count || 0), 0)
+              log(`Inbox snapshot: ${total} unread`)
               setUnreadCount(total)
             }
 
@@ -104,6 +108,8 @@ const Home = () => {
                 const previousConversation = previous.find((conv) => conv.id === nextConversation.id)
                 const updated = previous.map((conv) => (conv.id === nextConversation.id ? nextConversation : conv))
                 const total = updated.reduce((sum, conv) => sum + (conv.unread_count || 0), 0)
+                const prevTotal = previous.reduce((sum, conv) => sum + (conv.unread_count || 0), 0)
+                log(`Unread updated: ${prevTotal} → ${total}`)
                 setUnreadCount(total)
 
                 if ((nextConversation.unread_count || 0) > (previousConversation?.unread_count || 0)) {

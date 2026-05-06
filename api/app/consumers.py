@@ -101,6 +101,7 @@ class ConversationConsumer(BaseMessageConsumer):
             await self.send_json({"type": "error", "message": "Message body cannot be empty"})
             return
 
+        logger.info(f"receive_json send_message from {self.current_user.email} in {self.conversation_id}")
         message = await database_sync_to_async(MessageService.send_message)(
             self.conversation,
             self.current_user,
@@ -123,6 +124,7 @@ class ConversationConsumer(BaseMessageConsumer):
         await self.send_json({"type": "message.created", "message": message_payload})
 
     async def _broadcast_inbox_updates(self):
+        logger.debug(f"_broadcast_inbox_updates for {self.conversation_id}")
         current_summary = await database_sync_to_async(MessageService.serialize_conversation_summary)(
             self.conversation,
             self.current_user,
@@ -144,6 +146,7 @@ class ConversationConsumer(BaseMessageConsumer):
                 self.conversation,
                 other_user,
             )
+            logger.debug(f"broadcasting to {other_user.email}")
             await self.channel_layer.group_send(
                 f"inbox_{other_user.userid}",
                 {

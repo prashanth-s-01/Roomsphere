@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+import logging
 
 from django.db.models import Q
 from django.utils import timezone
@@ -8,6 +9,8 @@ from django.utils import timezone
 from app.dao.user_dao import UserDAO
 from app.models.converstation import Conversation
 from app.models.message import Message
+
+logger = logging.getLogger(__name__)
 
 
 class MessageService:
@@ -119,6 +122,7 @@ class MessageService:
 
     @staticmethod
     def list_conversations(current_user, search=""):
+        logger.debug(f"list_conversations for {current_user.email} search={bool(search)}")
         queryset = (
             Conversation.objects.filter(
                 Q(participant1=current_user) | Q(participant2=current_user)
@@ -154,6 +158,7 @@ class MessageService:
 
     @staticmethod
     def get_conversation_for_user(conversation_id, current_user):
+        logger.debug(f"get_conversation_for_user {conversation_id} for {current_user.email}")
         conversation = (
             Conversation.objects.select_related("participant1", "participant2")
             .prefetch_related("messages__sender")
@@ -162,19 +167,24 @@ class MessageService:
         )
 
         if not conversation:
+            logger.warning(f"conversation {conversation_id} not found")
             return None
 
         if current_user.userid not in {conversation.participant1_id, conversation.participant2_id}:
+            logger.warning(f"unauthorized access to {conversation_id} by {current_user.email}")
             return None
 
+        logger.debug(f"conversation {conversation_id} authorized")
         return conversation
 
     @staticmethod
     def build_thread_payload(conversation, current_user):
+        logger.debug(f"build_thread_payload for {conversation.id}")
         conversation.messages.filter(is_read=False).exclude(sender=current_user).update(is_read=True)
 
         messages = conversation.messages.select_related("sender").order_by("created_at")
         other_user = MessageService._other_participant(conversation, current_user)
+        logger.debug(f"thread payload: {messages.count()} messages")
 
         return {
             "conversation": {
@@ -193,4 +203,5 @@ class MessageService:
 
     @staticmethod
     def send_message(conversation, sender, body):
+        logger.info(f"send_message by {sender.email} in {conversation.id} len={len(body)}")
         return Message.objects.create(conversation=conversation, sender=sender, body=body)

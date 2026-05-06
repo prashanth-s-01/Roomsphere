@@ -5,6 +5,8 @@ import { playMessagePing } from '../lib/notificationSound'
 import { useAutoClearMessage } from '../lib/useAutoClearMessage'
 import '../styles/Messages.css'
 
+const log = (msg: string) => console.debug(`[Messages] ${msg}`)
+
 type StoredUser = {
   email: string
   firstName?: string
@@ -176,6 +178,7 @@ const Messages = () => {
     }
 
     closeSocket(inboxSocketRef)
+    log('Inbox WebSocket connecting')
 
     const socket = new WebSocket(`${websocketBase}/ws/messages/inbox/?email=${encodeURIComponent(currentEmail)}`)
     inboxSocketRef.current = socket
@@ -190,11 +193,13 @@ const Messages = () => {
         }
 
         if (payload.type === 'inbox.snapshot' && Array.isArray(payload.conversations)) {
+          log(`Inbox snapshot: ${payload.conversations.length} conversations`)
           setConversations(payload.conversations)
           setSelectedConversationId((previous) => previous || payload.conversations?.[0]?.id || '')
         }
 
         if (payload.type === 'inbox.updated' && payload.conversation) {
+          log(`Inbox updated: ${payload.conversation.participant.display_name}`)
           upsertConversation(payload.conversation)
         }
 
@@ -221,6 +226,7 @@ const Messages = () => {
     }
 
     closeSocket(threadSocketRef)
+    log('Conversation WebSocket connecting')
     setThreadLoading(true)
 
     const socket = new WebSocket(
@@ -237,12 +243,14 @@ const Messages = () => {
         }
 
         if (payload.type === 'thread.snapshot' && payload.thread) {
+          log(`Thread loaded: ${payload.thread.messages.length} messages`)
           setThread(payload.thread)
           setThreadLoading(false)
         }
 
         if (payload.type === 'message.created' && payload.message && typeof payload.message !== 'string') {
           const nextMessage = payload.message as ChatMessage
+          log(`Message received${nextMessage.is_current_user ? ' (own)' : ''}`)
 
           setThread((previous) => {
             if (!previous) {
@@ -344,6 +352,7 @@ const Messages = () => {
         throw new Error('Conversation websocket is not connected')
       }
 
+      log('Sending message')
       socket.send(
         JSON.stringify({
           action: 'send_message',
