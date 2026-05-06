@@ -1,4 +1,4 @@
-.PHONY: build up down restart logs ps shell-backend shell-db migrate makemigrations createsuperuser
+.PHONY: build up down restart logs ps shell-backend shell-db migrate makemigrations createsuperuser test-backend test-backend-message-flow test-backend-file
 
 # Build all services
 build:
@@ -69,6 +69,14 @@ makemigrations:
 
 createsuperuser:
 	docker compose exec backend python manage.py createsuperuser
+
+# Tests
+test-backend:
+	docker compose run --rm backend pytest -q
+
+# Usage: make test-backend-file TEST=tests/test_message_flow.py
+test-backend-file:
+	docker compose run --rm backend pytest $(TEST) -q
 
 # Build and start fresh
 fresh:
