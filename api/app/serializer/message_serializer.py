@@ -14,3 +14,8 @@ class ConversationCreateSerializer(serializers.Serializer):
 class SendMessageSerializer(serializers.Serializer):
     email = serializers.EmailField()
     body = serializers.CharField(allow_blank=False, trim_whitespace=True)
+
+
+class ListingInterestMessageSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    body = serializers.CharField(allow_blank=False, trim_whitespace=True)

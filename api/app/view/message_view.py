@@ -1,14 +1,53 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 from app.dao.user_dao import UserDAO
 from app.serializer.message_serializer import (
     ConversationCreateSerializer,
     InboxQuerySerializer,
+    ListingInterestMessageSerializer,
     SendMessageSerializer,
 )
 from app.service.message_service import MessageService
+from app.models.moveout_item import MoveoutItem
+
+
+def _broadcast_message_events(conversation, message, sender_user, recipient_user):
+    channel_layer = get_channel_layer()
+    if not channel_layer:
+        return
+
+    async_to_sync(channel_layer.group_send)(
+        f"conversation_{conversation.id}",
+        {
+            "type": "chat.message",
+            "message_id": str(message.id),
+        },
+    )
+
+    sender_summary = MessageService.serialize_conversation_summary(conversation, sender_user)
+    recipient_summary = MessageService.serialize_conversation_summary(conversation, recipient_user)
+
+    if sender_summary:
+        async_to_sync(channel_layer.group_send)(
+            f"inbox_{sender_user.userid}",
+            {
+                "type": "inbox.updated",
+                "conversation": sender_summary,
+            },
+        )
+
+    if recipient_summary:
+        async_to_sync(channel_layer.group_send)(
+            f"inbox_{recipient_user.userid}",
+            {
+                "type": "inbox.updated",
+                "conversation": recipient_summary,
+            },
+        )
 
 
 @api_view(["GET", "POST"])
@@ -88,6 +127,44 @@ def conversation_detail(request, conversation_id):
 
     return Response(
         {
+            "message": MessageService._serialize_message(message, current_user),
+            "thread": MessageService.build_thread_payload(conversation, current_user),
+        },
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(["POST"])
+def send_listing_interest_message(request, item_id):
+    serializer = ListingInterestMessageSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    current_user = MessageService.get_current_user(serializer.validated_data["email"])
+    if not current_user:
+        return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    item = MoveoutItem.objects.select_related("owner").filter(id=item_id).first()
+    if not item:
+        return Response({"error": "Moveout item not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    if item.owner_id == current_user.userid:
+        return Response({"error": "You cannot message yourself"}, status=status.HTTP_400_BAD_REQUEST)
+
+    conversation = MessageService.create_or_get_conversation(current_user, item.owner)
+    message = MessageService.send_message(
+        conversation,
+        current_user,
+        serializer.validated_data["body"],
+    )
+    _broadcast_message_events(conversation, message, current_user, item.owner)
+
+    return Response(
+        {
+            "conversation": {
+                "id": str(conversation.id),
+                "participant": MessageService._serialize_user(item.owner),
+            },
             "message": MessageService._serialize_message(message, current_user),
             "thread": MessageService.build_thread_payload(conversation, current_user),
         },

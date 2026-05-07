@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type MutableRefObject } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { getJson, getWebSocketBase, postJson } from '../lib/api'
 import { playMessagePing } from '../lib/notificationSound'
 import { useAutoClearMessage } from '../lib/useAutoClearMessage'
@@ -79,12 +79,15 @@ const Messages = () => {
   const [error, setError] = useState('')
   const [newThreadEmail, setNewThreadEmail] = useState('')
   const [showComposer, setShowComposer] = useState(false)
+  const [composerMessage, setComposerMessage] = useState('')
   const composerRef = useRef<HTMLTextAreaElement | null>(null)
   const threadEndRef = useRef<HTMLDivElement | null>(null)
   const inboxSocketRef = useRef<WebSocket | null>(null)
   const threadSocketRef = useRef<WebSocket | null>(null)
   const websocketBase = useMemo(() => getWebSocketBase(), [])
   const clearError = useCallback(() => setError(''), [])
+
+  const location = useLocation()
 
   useAutoClearMessage(error, clearError)
 
@@ -164,6 +167,17 @@ const Messages = () => {
 
   useEffect(() => {
     loadConversations()
+    // If navigation provided state to open composer with prefilled data, apply it
+    try {
+      const state = (location && (location as any).state) || {}
+      if (state.openComposer) {
+        setShowComposer(true)
+        if (state.recipientEmail) setNewThreadEmail(state.recipientEmail)
+        if (state.prefillMessage) setComposerMessage(state.prefillMessage)
+      }
+    } catch {
+      // ignore
+    }
   }, [currentEmail])
 
   useEffect(() => {
@@ -375,7 +389,21 @@ const Messages = () => {
         other_email: newThreadEmail.trim(),
       })
       const conversation = result.conversation as { id: string }
+      // If the composer had an initial message, send it after creating the conversation
+      if (composerMessage && composerMessage.trim()) {
+        try {
+          await postJson(`/messages/conversations/${conversation.id}/`, {
+            email: currentEmail,
+            body: composerMessage.trim(),
+          })
+        } catch (err) {
+          // ignore send errors here, show in UI
+          setError(err instanceof Error ? err.message : 'Failed to send initial message')
+        }
+      }
+
       setShowComposer(false)
+      setComposerMessage('')
       setNewThreadEmail('')
       setSelectedConversationId(conversation.id)
       await loadConversations()
@@ -642,6 +670,16 @@ const Messages = () => {
                   aria-describedby="email-help"
                 />
                 <span id="email-help" className="field-help">Enter the email address of the person you want to message</span>
+              </label>
+              <label className="field">
+                <span>Message</span>
+                <textarea
+                  placeholder="Write a quick message to the recipient"
+                  value={composerMessage}
+                  onChange={(event) => setComposerMessage(event.target.value)}
+                  rows={6}
+                  aria-label="Initial message body"
+                />
               </label>
               <div className="composer-modal-actions">
                 <button type="button" className="btn btn-outline" onClick={() => setShowComposer(false)}>
