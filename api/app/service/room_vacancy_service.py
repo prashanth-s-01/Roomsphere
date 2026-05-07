@@ -45,3 +45,19 @@ class RoomVacancyService:
             return RoomVacancy.objects.select_related("owner").get(id=vacancy_id)
         except RoomVacancy.DoesNotExist:
             return None
+
+    @staticmethod
+    def delete_room_vacancy(vacancy_id, email):
+        vacancy = RoomVacancyService.get_room_vacancy_by_id(vacancy_id)
+        if not vacancy:
+            return {"error": "Room vacancy not found"}, 404
+
+        requester = UserDAO.get_user_by_email(email)
+        if not requester:
+            return {"error": "User not found"}, 404
+
+        if vacancy.owner_id != requester.userid:
+            return {"error": "You can only delete your own room vacancy"}, 403
+
+        vacancy.delete()
+        return {"message": "Room vacancy deleted successfully"}, 200

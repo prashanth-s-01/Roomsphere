@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
-import { getJson, postJson } from '../lib/api'
+import { deleteJson, getJson, postJson } from '../lib/api'
 import {
   type RoomVacancy,
   formatAvailableFrom,
@@ -22,6 +22,7 @@ const RoomVacancyDetail = () => {
   const [composerMessage, setComposerMessage] = useState('')
   const [sending, setSending] = useState(false)
   const [sendResult, setSendResult] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     const fetchVacancy = async () => {
@@ -59,6 +60,18 @@ const RoomVacancyDetail = () => {
       </div>
     )
   }
+
+  const stored = localStorage.getItem('roomsphereUser')
+  let currentEmail = ''
+  if (stored) {
+    try {
+      currentEmail = String(JSON.parse(stored).email ?? '').trim().toLowerCase()
+    } catch {
+      currentEmail = ''
+    }
+  }
+
+  const isOwner = currentEmail.length > 0 && currentEmail === String(vacancy.owner?.email ?? '').trim().toLowerCase()
 
   return (
     <div className="room-vacancy-detail-page">
@@ -122,6 +135,40 @@ const RoomVacancyDetail = () => {
             >
               Send message
             </button>
+            {isOwner ? (
+              <button
+                type="button"
+                className="btn btn-light room-vacancy-delete-button"
+                disabled={deleting}
+                onClick={async () => {
+                  setSendResult(null)
+                  if (!currentEmail) {
+                    setSendResult('Please login to delete your room vacancy')
+                    return
+                  }
+
+                  const confirmed = window.confirm('Delete this room vacancy? This cannot be undone.')
+                  if (!confirmed) {
+                    return
+                  }
+
+                  setDeleting(true)
+                  try {
+                    await deleteJson(`/auth/room-vacancies/${vacancy.id}/`, {
+                      email: currentEmail,
+                    })
+                    navigate('/roommates')
+                  } catch (err) {
+                    setSendResult(err instanceof Error ? err.message : 'Failed to delete room vacancy')
+                  } finally {
+                    setDeleting(false)
+                  }
+                }}
+              >
+                {deleting ? 'Deleting…' : 'Delete my posting'}
+              </button>
+            ) : null}
+            {sendResult ? <p className="form-note">{sendResult}</p> : null}
           </div>
         </aside>
       </div>

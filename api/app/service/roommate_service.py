@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from django.db.models import Q
 
+from app.models.room_vacancy import RoomVacancy
 from app.dao.user_dao import UserDAO
 from app.models.users import User
 
@@ -135,7 +136,8 @@ class RoommateService:
     def list_roommates(filters: dict):
         current_user = UserDAO.get_user_by_email(filters.get("email"))
 
-        queryset = User.objects.all()
+        vacancy_owner_ids = RoomVacancy.objects.values_list("owner_id", flat=True).distinct()
+        queryset = User.objects.filter(userid__in=vacancy_owner_ids)
         if current_user:
             queryset = queryset.exclude(userid=current_user.userid)
 
@@ -181,7 +183,8 @@ class RoommateService:
     @staticmethod
     def get_roommate_detail(user_id: str, email: str | None = None):
         current_user = UserDAO.get_user_by_email(email)
-        queryset = User.objects.filter(userid=user_id)
+        vacancy_owner_ids = RoomVacancy.objects.values_list("owner_id", flat=True).distinct()
+        queryset = User.objects.filter(userid=user_id, userid__in=vacancy_owner_ids)
         if current_user:
             queryset = queryset.exclude(userid=current_user.userid)
         user = queryset.first()

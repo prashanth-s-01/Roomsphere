@@ -148,6 +148,11 @@
   margin-top: 8px;
 }
 
+.room-vacancy-delete-button {
+  width: 100%;
+  margin-top: 10px;
+}
+
 .room-vacancy-detail-state {
   max-width: 720px;
   margin: 80px auto 0;

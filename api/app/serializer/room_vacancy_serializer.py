@@ -63,3 +63,14 @@ class RoomVacancyResponseSerializer(serializers.Serializer):
             "lastName": obj.owner.last_name,
             "email": obj.owner.email,
         }
+
+
+class RoomVacancyDeleteSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        if not _is_allowed_email(value):
+            raise serializers.ValidationError(
+                "Email must be from the Five College Consortium"
+            )
+        return value
