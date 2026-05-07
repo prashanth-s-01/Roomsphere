@@ -5,6 +5,7 @@ from app.view.message_view import (
     conversations,
     send_listing_interest_message,
     send_roommate_interest_message,
+    send_room_vacancy_interest_message,
 )
 
 urlpatterns = [
@@ -12,4 +13,5 @@ urlpatterns = [
     path("conversations/<uuid:conversation_id>/", conversation_detail),
     path("moveout/<uuid:item_id>/", send_listing_interest_message),
     path("roommates/<uuid:user_id>/", send_roommate_interest_message),
+    path("room-vacancies/<uuid:vacancy_id>/", send_room_vacancy_interest_message),
 ]
