@@ -1,0 +1,219 @@
+.room-vacancy-detail-page {
+  min-height: 100vh;
+  padding: 32px 24px 60px;
+  background:
+    radial-gradient(circle at top right, rgba(112, 127, 144, 0.14), transparent 32%),
+    linear-gradient(180deg, #faf7f0 0%, #f2ede5 54%, #faf9f4 100%);
+}
+
+.btn-back {
+  border: none;
+  background: transparent;
+  color: #715c36;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 18px;
+}
+
+.room-vacancy-detail-layout {
+  max-width: 1220px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) 340px;
+  gap: 24px;
+}
+
+.room-vacancy-detail-main,
+.room-vacancy-detail-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.room-vacancy-hero-card,
+.room-vacancy-contact-card,
+.room-vacancy-detail-state {
+  border: 1px solid rgba(123, 129, 111, 0.18);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 24px 60px rgba(72, 68, 56, 0.08);
+}
+
+.room-vacancy-hero-card {
+  overflow: hidden;
+}
+
+.room-vacancy-image-shell {
+  aspect-ratio: 16 / 8;
+  background: linear-gradient(135deg, #d8d7d1, #f0ddc5);
+}
+
+.room-vacancy-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.room-vacancy-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: #5a645b;
+  font-weight: 700;
+}
+
+.room-vacancy-hero-copy {
+  padding: 26px;
+}
+
+.room-vacancy-hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.room-vacancy-hero-badges span {
+  border-radius: 999px;
+  background: rgba(94, 128, 165, 0.1);
+  color: #47617a;
+  padding: 7px 11px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.room-vacancy-hero-copy h1 {
+  margin: 14px 0 12px;
+  color: #1e1f1e;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  line-height: 1.02;
+}
+
+.room-vacancy-hero-copy p {
+  margin: 0;
+  color: #576057;
+  line-height: 1.65;
+}
+
+.room-vacancy-facts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.room-vacancy-facts-grid div,
+.room-vacancy-contact-card {
+  border: 1px solid rgba(123, 129, 111, 0.16);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.82);
+  padding: 20px;
+}
+
+.room-vacancy-facts-grid span {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #768071;
+}
+
+.room-vacancy-facts-grid strong {
+  color: #20221f;
+}
+
+.room-vacancy-contact-card h3 {
+  margin: 10px 0 12px;
+  color: #20211e;
+}
+
+.roommate-section-eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #7d8770;
+}
+
+.room-vacancy-contact-card p {
+  color: #5c655c;
+  line-height: 1.6;
+}
+
+.room-vacancy-message-button {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.room-vacancy-detail-state {
+  max-width: 720px;
+  margin: 80px auto 0;
+  padding: 28px;
+  text-align: center;
+}
+
+.room-vacancy-detail-state-error {
+  color: #8d402e;
+}
+
+.composer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 18, 15, 0.56);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.composer-modal {
+  width: min(640px, 100%);
+  padding: 24px;
+  border: 1px solid rgba(123, 129, 111, 0.18);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 24px 60px rgba(72, 68, 56, 0.16);
+}
+
+.composer-modal-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.thread-icon-button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #5d6457;
+}
+
+.composer-form textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 140px;
+}
+
+.composer-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+@media (max-width: 960px) {
+  .room-vacancy-detail-layout,
+  .room-vacancy-facts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .room-vacancy-detail-page {
+    padding-inline: 16px;
+  }
+}

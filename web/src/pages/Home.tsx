@@ -427,10 +427,10 @@ const Home = () => {
               roommates from across the consortium.
             </p>
             <div className="feature-actions">
-              <Link to="/login" className="btn btn-primary">
-                Browse Listings
+              <Link to="/roommates" className="btn btn-primary">
+                Browse Matches
               </Link>
-              <Link to="/signup" className="btn btn-light">
+              <Link to="/post-room-vacancy" className="btn btn-light">
                 Post Vacancy
               </Link>
             </div>

@@ -1,0 +1,252 @@
+.roommate-detail-page {
+  min-height: 100vh;
+  padding: 32px 24px 60px;
+  background:
+    radial-gradient(circle at top left, rgba(214, 161, 93, 0.12), transparent 30%),
+    linear-gradient(180deg, #faf7f0 0%, #f3ede0 45%, #faf8f3 100%);
+}
+
+.btn-back {
+  border: none;
+  background: transparent;
+  color: #715c36;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 18px;
+}
+
+.roommate-detail-layout {
+  max-width: 1220px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) 340px;
+  gap: 24px;
+}
+
+.roommate-detail-main,
+.roommate-detail-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.roommate-hero-card,
+.roommate-info-card,
+.roommate-contact-card,
+.composer-modal {
+  border: 1px solid rgba(123, 129, 111, 0.18);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 24px 60px rgba(72, 68, 56, 0.08);
+}
+
+.roommate-hero-card {
+  display: flex;
+  gap: 24px;
+  padding: 30px;
+  align-items: flex-start;
+}
+
+.roommate-detail-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 28px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #8a977b, #d6a15d);
+  color: white;
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.roommate-hero-copy h1 {
+  margin: 14px 0 10px;
+  color: #1d1f1b;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 1;
+}
+
+.roommate-hero-copy p,
+.roommate-contact-card p,
+.roommate-empty-copy {
+  color: #5e6557;
+  line-height: 1.6;
+}
+
+.roommate-hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.roommate-hero-badges span,
+.roommate-reason-list li {
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-weight: 700;
+  font-size: 0.84rem;
+}
+
+.roommate-hero-badges span {
+  background: rgba(138, 151, 123, 0.12);
+  color: #56624a;
+}
+
+.roommate-section-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.roommate-info-card,
+.roommate-contact-card {
+  padding: 24px;
+}
+
+.roommate-section-eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #7d8770;
+}
+
+.roommate-info-card h2,
+.roommate-contact-card h3 {
+  margin: 10px 0 16px;
+  color: #20211d;
+}
+
+.roommate-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.roommate-facts div {
+  border-radius: 20px;
+  background: rgba(244, 240, 230, 0.86);
+  padding: 14px;
+}
+
+.roommate-facts span {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #747c68;
+}
+
+.roommate-facts strong {
+  color: #2b2d28;
+  line-height: 1.45;
+}
+
+.roommate-reason-list {
+  list-style: none;
+  padding: 0;
+  margin: 18px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.roommate-reason-list li {
+  background: rgba(214, 161, 93, 0.16);
+  color: #85561d;
+}
+
+.roommate-message-button {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.roommate-tip-card {
+  background: rgba(83, 96, 70, 0.94);
+  color: white;
+}
+
+.roommate-tip-card h3,
+.roommate-tip-card p {
+  color: white;
+}
+
+.roommate-detail-state {
+  max-width: 720px;
+  margin: 80px auto 0;
+  padding: 28px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.88);
+  text-align: center;
+}
+
+.roommate-detail-state-error {
+  color: #8d402e;
+}
+
+.composer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 18, 15, 0.56);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.composer-modal {
+  width: min(640px, 100%);
+  padding: 24px;
+}
+
+.composer-modal-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.thread-icon-button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #5d6457;
+}
+
+.composer-form textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 140px;
+}
+
+.composer-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+@media (max-width: 960px) {
+  .roommate-detail-layout,
+  .roommate-section-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .roommate-detail-page {
+    padding-inline: 16px;
+  }
+
+  .roommate-hero-card {
+    flex-direction: column;
+    padding: 22px;
+  }
+
+  .roommate-facts {
+    grid-template-columns: 1fr;
+  }
+}

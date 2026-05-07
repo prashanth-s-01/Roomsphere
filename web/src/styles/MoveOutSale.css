@@ -1,6 +1,9 @@
 .moveout-sale-page {
   min-height: 100vh;
-  background-color: #f8f9fa;
+  background:
+    radial-gradient(circle at top left, rgba(214, 161, 93, 0.14), transparent 28%),
+    radial-gradient(circle at top right, rgba(138, 151, 123, 0.18), transparent 34%),
+    linear-gradient(180deg, #f8f4ec 0%, #f4efe5 52%, #fbf9f4 100%);
 }
 
 .moveout-content {
@@ -213,4 +216,3 @@
     font-size: 1rem;
   }
 }
-

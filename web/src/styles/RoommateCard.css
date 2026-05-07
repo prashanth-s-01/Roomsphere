@@ -1,0 +1,118 @@
+.roommate-card {
+  width: 100%;
+  border: 1px solid rgba(138, 151, 123, 0.24);
+  border-radius: 24px;
+  padding: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(245, 242, 232, 0.96));
+  box-shadow: 0 18px 45px rgba(84, 79, 62, 0.1);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.roommate-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 24px 55px rgba(84, 79, 62, 0.14);
+  border-color: rgba(138, 151, 123, 0.42);
+}
+
+.roommate-card-top {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.roommate-avatar {
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #8a977b, #d6a15d);
+  color: white;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.roommate-card-heading {
+  flex: 1;
+}
+
+.roommate-card-heading h3 {
+  margin: 10px 0 4px;
+  color: #20211d;
+  font-size: 1.22rem;
+}
+
+.roommate-card-heading p {
+  margin: 0;
+  color: #63695b;
+}
+
+.roommate-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.roommate-campus-pill,
+.roommate-match-pill,
+.roommate-reasons span {
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.roommate-campus-pill {
+  background: rgba(138, 151, 123, 0.14);
+  color: #536046;
+}
+
+.roommate-match-pill {
+  background: rgba(214, 161, 93, 0.18);
+  color: #8a5a18;
+}
+
+.roommate-bio-preview {
+  margin: 18px 0 16px;
+  color: #44483f;
+  line-height: 1.55;
+  min-height: 72px;
+}
+
+.roommate-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  color: #4f544a;
+  font-size: 0.92rem;
+}
+
+.roommate-meta-grid span {
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+
+.roommate-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.roommate-reasons span {
+  background: rgba(83, 96, 70, 0.1);
+  color: #46503d;
+}
+
+@media (max-width: 640px) {
+  .roommate-card {
+    padding: 18px;
+  }
+
+  .roommate-meta-grid {
+    grid-template-columns: 1fr;
+  }
+}

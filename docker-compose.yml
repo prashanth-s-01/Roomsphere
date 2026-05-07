@@ -51,6 +51,9 @@ services:
       - "5173:5173"
     environment:
       - VITE_API_URL=http://localhost:8000/api
+    command: >
+      sh -c "npm install &&
+             npm run dev -- --host"
 
   # nginx:
   #   image: nginx:alpine

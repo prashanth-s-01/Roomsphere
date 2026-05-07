@@ -203,7 +203,7 @@ const MoveOutSale = () => {
             </span>
           </Link>
           <nav className="nav-links">
-            <Link to="/" className="nav-link">
+            <Link to="/roommates" className="nav-link">
               <span className="nav-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
                   <path

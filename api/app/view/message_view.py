@@ -13,6 +13,8 @@ from app.serializer.message_serializer import (
 )
 from app.service.message_service import MessageService
 from app.models.moveout_item import MoveoutItem
+from app.models.room_vacancy import RoomVacancy
+from app.models.users import User
 
 
 def _broadcast_message_events(conversation, message, sender_user, recipient_user):
@@ -164,6 +166,82 @@ def send_listing_interest_message(request, item_id):
             "conversation": {
                 "id": str(conversation.id),
                 "participant": MessageService._serialize_user(item.owner),
+            },
+            "message": MessageService._serialize_message(message, current_user),
+            "thread": MessageService.build_thread_payload(conversation, current_user),
+        },
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(["POST"])
+def send_roommate_interest_message(request, user_id):
+    serializer = ListingInterestMessageSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    current_user = MessageService.get_current_user(serializer.validated_data["email"])
+    if not current_user:
+        return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    roommate = User.objects.filter(userid=user_id).first()
+    if not roommate:
+        return Response({"error": "Roommate profile not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    if roommate.userid == current_user.userid:
+        return Response({"error": "You cannot message yourself"}, status=status.HTTP_400_BAD_REQUEST)
+
+    conversation = MessageService.create_or_get_conversation(current_user, roommate)
+    message = MessageService.send_message(
+        conversation,
+        current_user,
+        serializer.validated_data["body"],
+    )
+    _broadcast_message_events(conversation, message, current_user, roommate)
+
+    return Response(
+        {
+            "conversation": {
+                "id": str(conversation.id),
+                "participant": MessageService._serialize_user(roommate),
+            },
+            "message": MessageService._serialize_message(message, current_user),
+            "thread": MessageService.build_thread_payload(conversation, current_user),
+        },
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(["POST"])
+def send_room_vacancy_interest_message(request, vacancy_id):
+    serializer = ListingInterestMessageSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    current_user = MessageService.get_current_user(serializer.validated_data["email"])
+    if not current_user:
+        return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    vacancy = RoomVacancy.objects.select_related("owner").filter(id=vacancy_id).first()
+    if not vacancy:
+        return Response({"error": "Room vacancy not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    if vacancy.owner_id == current_user.userid:
+        return Response({"error": "You cannot message yourself"}, status=status.HTTP_400_BAD_REQUEST)
+
+    conversation = MessageService.create_or_get_conversation(current_user, vacancy.owner)
+    message = MessageService.send_message(
+        conversation,
+        current_user,
+        serializer.validated_data["body"],
+    )
+    _broadcast_message_events(conversation, message, current_user, vacancy.owner)
+
+    return Response(
+        {
+            "conversation": {
+                "id": str(conversation.id),
+                "participant": MessageService._serialize_user(vacancy.owner),
             },
             "message": MessageService._serialize_message(message, current_user),
             "thread": MessageService.build_thread_payload(conversation, current_user),
