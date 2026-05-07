@@ -2,12 +2,14 @@ import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from '
 import { Link, useNavigate } from 'react-router-dom'
 
 import RoommateCard from '../components/RoommateCard'
+import RoomVacancyCard from '../components/RoomVacancyCard'
 import { getJson, postJson } from '../lib/api'
 import {
   type RoommateProfile,
   formatBudgetRange,
   getPreferenceLabel,
 } from '../lib/roommates'
+import { type RoomVacancy } from '../lib/roomVacancies'
 import '../styles/RoommateFinder.css'
 
 type StoredUser = {
@@ -20,6 +22,7 @@ type StoredUser = {
 const RoommateFinder = () => {
   const navigate = useNavigate()
   const [profiles, setProfiles] = useState<RoommateProfile[]>([])
+  const [vacancies, setVacancies] = useState<RoomVacancy[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedCampus, setSelectedCampus] = useState('all')
@@ -64,12 +67,17 @@ const RoommateFinder = () => {
     const fetchProfiles = async () => {
       try {
         setLoading(true)
-        const response = await getJson<{ profiles?: RoommateProfile[] }>('/auth/roommates/', user?.email ? { email: user.email } : undefined)
-        setProfiles(Array.isArray(response.profiles) ? response.profiles : [])
+        const [profileResponse, vacancyResponse] = await Promise.all([
+          getJson<{ profiles?: RoommateProfile[] }>('/auth/roommates/', user?.email ? { email: user.email } : undefined),
+          getJson<{ items?: RoomVacancy[] }>('/auth/room-vacancies/'),
+        ])
+        setProfiles(Array.isArray(profileResponse.profiles) ? profileResponse.profiles : [])
+        setVacancies(Array.isArray(vacancyResponse.items) ? vacancyResponse.items : [])
         setError(null)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load roommate profiles')
         setProfiles([])
+        setVacancies([])
       } finally {
         setLoading(false)
       }
@@ -301,15 +309,42 @@ const RoommateFinder = () => {
         <section className="roommate-header">
           <div>
             <p className="roommate-eyebrow">Roommate Finder</p>
-            <h1>Browse profiles that actually fit how you live</h1>
+            <h1>Browse roommate matches and open rooms in one place</h1>
             <p>
-              See budgets, sleep habits, campus preferences, and a simple compatibility score based on your own profile.
+              Compare roommate profiles, then browse rooms with rent, lease timing, and roommate preferences before you message.
             </p>
           </div>
           <div className="roommate-header-actions">
-            <Link to="/signup" className="btn btn-light">Invite a friend</Link>
-            <Link to="/moveout-sale" className="btn btn-primary">Browse moveout items</Link>
+            <Link to="/post-room-vacancy" className="btn btn-primary">Post room vacancy</Link>
+            <Link to="/moveout-sale" className="btn btn-light">Browse moveout items</Link>
           </div>
+        </section>
+
+        <section className="roommate-vacancy-panel">
+          <div className="roommate-results-header">
+            <div>
+              <p className="roommate-eyebrow">Room vacancies</p>
+              <h2>Rooms students are currently offering</h2>
+            </div>
+            <p className="roommate-results-note">
+              These listings work like moveout items: open a detail page, review the terms, and message the poster directly.
+            </p>
+          </div>
+          {loading ? <div className="roommate-state">Loading room vacancies...</div> : null}
+          {!loading && !error && vacancies.length === 0 ? (
+            <div className="roommate-state">No room vacancies have been posted yet.</div>
+          ) : null}
+          {!loading && !error && vacancies.length > 0 ? (
+            <div className="room-vacancy-grid">
+              {vacancies.map((vacancy) => (
+                <RoomVacancyCard
+                  key={vacancy.id}
+                  vacancy={vacancy}
+                  onClick={() => navigate(`/room-vacancies/${vacancy.id}`)}
+                />
+              ))}
+            </div>
+          ) : null}
         </section>
 
         <section className="roommate-layout">

@@ -430,8 +430,8 @@ const Home = () => {
               <Link to="/roommates" className="btn btn-primary">
                 Browse Matches
               </Link>
-              <Link to="/signup" className="btn btn-light">
-                Create Profile
+              <Link to="/post-room-vacancy" className="btn btn-light">
+                Post Vacancy
               </Link>
             </div>
           </article>
