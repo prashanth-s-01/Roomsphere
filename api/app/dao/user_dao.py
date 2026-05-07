@@ -11,7 +11,10 @@ class UserDAO:
 
     @staticmethod
     def get_user_by_email(email):
-        # Fetch single user by email
-        return User.objects.filter(email=email).first()
+        # Fetch single user by email (case-insensitive, trimmed)
+        normalized_email = (email or "").strip()
+        if not normalized_email:
+            return None
+        return User.objects.filter(email__iexact=normalized_email).first()
 
 

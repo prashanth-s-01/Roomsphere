@@ -30,9 +30,10 @@ const toQueryString = (params: Record<string, string | undefined>) => {
   return query ? `?${query}` : ''
 }
 
-export async function getJson(path: string) {
+export async function getJson<T = ApiResult>(path: string, params?: Record<string, string | undefined>) {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`
-  const response = await fetch(`${API_BASE}${normalizedPath}`, {
+  const query = params ? toQueryString(params) : ''
+  const response = await fetch(`${API_BASE}${normalizedPath}${query}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -55,7 +56,7 @@ export async function getJson(path: string) {
     throw new Error(data.error)
   }
 
-  return data
+  return data as T
 }
 
 export async function postJson(path: string, body: Record<string, unknown>) {
