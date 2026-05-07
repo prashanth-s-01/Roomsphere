@@ -4,6 +4,7 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
 from app.serializer.room_vacancy_serializer import (
+    RoomVacancyDeleteSerializer,
     RoomVacancyResponseSerializer,
     RoomVacancySerializer,
 )
@@ -42,8 +43,19 @@ def get_room_vacancies(request):
         )
 
 
-@api_view(["GET"])
+@api_view(["GET", "DELETE"])
 def get_room_vacancy_detail(request, vacancy_id):
+    if request.method == "DELETE":
+        serializer = RoomVacancyDeleteSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        result, status_code = RoomVacancyService.delete_room_vacancy(
+            vacancy_id,
+            serializer.validated_data["email"],
+        )
+        return Response(result, status=status_code)
+
     try:
         vacancy = RoomVacancyService.get_room_vacancy_by_id(vacancy_id)
         if not vacancy:

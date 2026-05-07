@@ -9,7 +9,12 @@ import {
   formatBudgetRange,
   getPreferenceLabel,
 } from '../lib/roommates'
-import { type RoomVacancy } from '../lib/roomVacancies'
+import {
+  type RoomVacancy,
+  getHousingTypeLabel,
+  getLeaseDurationLabel,
+  getVacancyGenderLabel,
+} from '../lib/roomVacancies'
 import '../styles/RoommateFinder.css'
 
 type StoredUser = {
@@ -31,6 +36,13 @@ const RoommateFinder = () => {
   const [maxBudget, setMaxBudget] = useState('')
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState('best-match')
+  const [vacancySearch, setVacancySearch] = useState('')
+  const [vacancyCampus, setVacancyCampus] = useState('all')
+  const [vacancyHousingType, setVacancyHousingType] = useState('all')
+  const [vacancyGenderPreference, setVacancyGenderPreference] = useState('all')
+  const [vacancyLeaseDuration, setVacancyLeaseDuration] = useState('all')
+  const [vacancyMaxRent, setVacancyMaxRent] = useState('')
+  const [vacancySortBy, setVacancySortBy] = useState('recent')
 
   const [user, setUser] = useState<StoredUser | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -98,6 +110,10 @@ const RoommateFinder = () => {
     return [...new Set(profiles.map((profile) => profile.campus).filter(Boolean))].sort()
   }, [profiles])
 
+  const vacancyCampuses = useMemo(() => {
+    return [...new Set(vacancies.map((vacancy) => vacancy.location).filter(Boolean))].sort()
+  }, [vacancies])
+
   const filteredProfiles = useMemo(() => {
     const query = search.trim().toLowerCase()
     const next = profiles.filter((profile) => {
@@ -138,6 +154,57 @@ const RoommateFinder = () => {
 
     return next
   }, [maxBudget, profiles, search, selectedCampus, selectedGender, selectedSmoking, sortBy])
+
+  const filteredVacancies = useMemo(() => {
+    const query = vacancySearch.trim().toLowerCase()
+    const next = vacancies.filter((vacancy) => {
+      if (vacancyCampus !== 'all' && vacancy.location !== vacancyCampus) return false
+      if (vacancyHousingType !== 'all' && vacancy.housing_type !== vacancyHousingType) return false
+      if (vacancyGenderPreference !== 'all' && vacancy.gender_preference !== vacancyGenderPreference) return false
+      if (vacancyLeaseDuration !== 'all' && vacancy.lease_duration !== vacancyLeaseDuration) return false
+      if (vacancyMaxRent && Number(vacancy.rent) > Number(vacancyMaxRent)) return false
+
+      if (query) {
+        const haystack = [
+          vacancy.title,
+          vacancy.description,
+          vacancy.location,
+          getHousingTypeLabel(vacancy.housing_type),
+          getLeaseDurationLabel(vacancy.lease_duration),
+          getVacancyGenderLabel(vacancy.gender_preference),
+        ]
+          .join(' ')
+          .toLowerCase()
+        if (!haystack.includes(query)) return false
+      }
+
+      return true
+    })
+
+    next.sort((a, b) => {
+      if (vacancySortBy === 'rent-low') {
+        return Number(a.rent) - Number(b.rent)
+      }
+      if (vacancySortBy === 'rent-high') {
+        return Number(b.rent) - Number(a.rent)
+      }
+      if (vacancySortBy === 'available-soon') {
+        return a.available_from.localeCompare(b.available_from)
+      }
+      return b.created_at.localeCompare(a.created_at)
+    })
+
+    return next
+  }, [
+    vacancies,
+    vacancyCampus,
+    vacancyGenderPreference,
+    vacancyHousingType,
+    vacancyLeaseDuration,
+    vacancyMaxRent,
+    vacancySearch,
+    vacancySortBy,
+  ])
 
   const handleProfileChange = (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = event.target
@@ -324,19 +391,119 @@ const RoommateFinder = () => {
           <div className="roommate-results-header">
             <div>
               <p className="roommate-eyebrow">Room vacancies</p>
-              <h2>Rooms students are currently offering</h2>
+              <h2>{filteredVacancies.length} rooms students are currently offering</h2>
             </div>
             <p className="roommate-results-note">
               These listings work like moveout items: open a detail page, review the terms, and message the poster directly.
             </p>
           </div>
+          <div className="room-vacancy-filters">
+            <div className="roommate-filter-header">
+              <div>
+                <p className="roommate-eyebrow">Filter rooms</p>
+                <h2>Narrow the listings</h2>
+              </div>
+              <button
+                type="button"
+                className="filter-reset"
+                onClick={() => {
+                  setVacancySearch('')
+                  setVacancyCampus('all')
+                  setVacancyHousingType('all')
+                  setVacancyGenderPreference('all')
+                  setVacancyLeaseDuration('all')
+                  setVacancyMaxRent('')
+                  setVacancySortBy('recent')
+                }}
+              >
+                Reset
+              </button>
+            </div>
+            <div className="room-vacancy-filter-grid">
+              <label className="field">
+                <span>Search</span>
+                <input
+                  value={vacancySearch}
+                  onChange={(event) => setVacancySearch(event.target.value)}
+                  placeholder="Room, neighborhood, vibe..."
+                />
+              </label>
+              <label className="field">
+                <span>Campus / Area</span>
+                <select value={vacancyCampus} onChange={(event) => setVacancyCampus(event.target.value)}>
+                  <option value="all">All campuses</option>
+                  {vacancyCampuses.map((campus) => (
+                    <option key={campus} value={campus}>
+                      {campus}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>Housing Type</span>
+                <select value={vacancyHousingType} onChange={(event) => setVacancyHousingType(event.target.value)}>
+                  <option value="all">All housing types</option>
+                  <option value="APARTMENT">Apartment</option>
+                  <option value="HOUSE">House</option>
+                  <option value="STUDIO">Studio</option>
+                  <option value="DORM">Dorm / Campus Housing</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>Preferred Roommate</span>
+                <select value={vacancyGenderPreference} onChange={(event) => setVacancyGenderPreference(event.target.value)}>
+                  <option value="all">Any preference</option>
+                  <option value="ANY">Any gender</option>
+                  <option value="MALE">Male roommates</option>
+                  <option value="FEMALE">Female roommates</option>
+                  <option value="NON_BINARY">Non-binary roommates</option>
+                  <option value="OTHER">Other</option>
+                  <option value="PREFER_NOT_SAY">Prefer not to say</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>Lease Duration</span>
+                <select value={vacancyLeaseDuration} onChange={(event) => setVacancyLeaseDuration(event.target.value)}>
+                  <option value="all">Any duration</option>
+                  <option value="MONTH_TO_MONTH">Month to Month</option>
+                  <option value="3_MONTHS">3 Months</option>
+                  <option value="6_MONTHS">6 Months</option>
+                  <option value="12_MONTHS">12 Months</option>
+                  <option value="12_PLUS">12+ Months</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>Max Rent</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={vacancyMaxRent}
+                  onChange={(event) => setVacancyMaxRent(event.target.value)}
+                  placeholder="e.g. 1200"
+                />
+              </label>
+              <label className="field">
+                <span>Sort by</span>
+                <select value={vacancySortBy} onChange={(event) => setVacancySortBy(event.target.value)}>
+                  <option value="recent">Most recent</option>
+                  <option value="available-soon">Available soonest</option>
+                  <option value="rent-low">Lowest rent</option>
+                  <option value="rent-high">Highest rent</option>
+                </select>
+              </label>
+            </div>
+          </div>
           {loading ? <div className="roommate-state">Loading room vacancies...</div> : null}
           {!loading && !error && vacancies.length === 0 ? (
             <div className="roommate-state">No room vacancies have been posted yet.</div>
           ) : null}
-          {!loading && !error && vacancies.length > 0 ? (
+          {!loading && !error && vacancies.length > 0 && filteredVacancies.length === 0 ? (
+            <div className="roommate-state">No room vacancies match your filters yet.</div>
+          ) : null}
+          {!loading && !error && filteredVacancies.length > 0 ? (
             <div className="room-vacancy-grid">
-              {vacancies.map((vacancy) => (
+              {filteredVacancies.map((vacancy) => (
                 <RoomVacancyCard
                   key={vacancy.id}
                   vacancy={vacancy}
