@@ -1,6 +1,7 @@
 const RAW_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 const trimmedBase = RAW_BASE.replace(/\/$/, '')
 const API_BASE = trimmedBase.endsWith('/api') ? trimmedBase : `${trimmedBase}/api`
+const logPrefix = '[api]'
 
 export type ApiResult = Record<string, unknown>
 
@@ -33,7 +34,10 @@ const toQueryString = (params: Record<string, string | undefined>) => {
 export async function getJson<T = ApiResult>(path: string, params?: Record<string, string | undefined>) {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`
   const query = params ? toQueryString(params) : ''
-  const response = await fetch(`${API_BASE}${normalizedPath}${query}`, {
+  const url = `${API_BASE}${normalizedPath}${query}`
+  console.debug(`${logPrefix} GET ${url}`, { params })
+
+  const response = await fetch(url, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -43,25 +47,32 @@ export async function getJson<T = ApiResult>(path: string, params?: Record<strin
   let data: ApiResult = {}
   try {
     data = await response.json()
-  } catch {
+  } catch (error) {
+    console.warn(`${logPrefix} getJson failed to parse JSON`, error)
     data = {}
   }
 
   if (!response.ok) {
     const error = typeof data.error === 'string' ? data.error : 'Request failed'
+    console.error(`${logPrefix} getJson HTTP error`, { status: response.status, error })
     throw new Error(error)
   }
 
   if (typeof data.error === 'string') {
+    console.error(`${logPrefix} getJson returned API error`, { error: data.error })
     throw new Error(data.error)
   }
 
+  console.debug(`${logPrefix} getJson success`, { url, data })
   return data as T
 }
 
 export async function postJson(path: string, body: Record<string, unknown>) {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`
-  const response = await fetch(`${API_BASE}${normalizedPath}`, {
+  const url = `${API_BASE}${normalizedPath}`
+  console.debug(`${logPrefix} POST ${url}`, { body })
+
+  const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -72,25 +83,32 @@ export async function postJson(path: string, body: Record<string, unknown>) {
   let data: ApiResult = {}
   try {
     data = await response.json()
-  } catch {
+  } catch (error) {
+    console.warn(`${logPrefix} postJson failed to parse JSON`, error)
     data = {}
   }
 
   if (!response.ok) {
     const error = typeof data.error === 'string' ? data.error : 'Request failed'
+    console.error(`${logPrefix} postJson HTTP error`, { status: response.status, error })
     throw new Error(error)
   }
 
   if (typeof data.error === 'string') {
+    console.error(`${logPrefix} postJson returned API error`, { error: data.error })
     throw new Error(data.error)
   }
 
+  console.debug(`${logPrefix} postJson success`, { url, data })
   return data
 }
 
 export async function postFormData(path: string, body: FormData) {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`
-  const response = await fetch(`${API_BASE}${normalizedPath}`, {
+  const url = `${API_BASE}${normalizedPath}`
+  console.debug(`${logPrefix} POST FormData ${url}`)
+
+  const response = await fetch(url, {
     method: 'POST',
     body,
   })
@@ -98,19 +116,23 @@ export async function postFormData(path: string, body: FormData) {
   let data: ApiResult = {}
   try {
     data = await response.json()
-  } catch {
+  } catch (error) {
+    console.warn(`${logPrefix} postFormData failed to parse JSON`, error)
     data = {}
   }
 
   if (!response.ok) {
     const error = typeof data.error === 'string' ? data.error : 'Request failed'
+    console.error(`${logPrefix} postFormData HTTP error`, { status: response.status, error })
     throw new Error(error)
   }
 
   if (typeof data.error === 'string') {
+    console.error(`${logPrefix} postFormData returned API error`, { error: data.error })
     throw new Error(data.error)
   }
 
+  console.debug(`${logPrefix} postFormData success`, { url, data })
   return data
 }
 

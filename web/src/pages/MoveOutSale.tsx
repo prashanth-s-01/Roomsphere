@@ -12,6 +12,7 @@ type StoredUser = {
 }
 
 const MoveOutSale = () => {
+  const logPrefix = '[MoveOutSale]'
   const navigate = useNavigate()
   const [items, setItems] = useState<ListingItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -39,17 +40,20 @@ const MoveOutSale = () => {
   useEffect(() => {
     const stored = localStorage.getItem('roomsphereUser')
     if (!stored) {
+      console.debug(`${logPrefix} no authenticated user found in localStorage`)
       return
     }
 
     try {
       const parsed = JSON.parse(stored) as StoredUser
+      console.debug(`${logPrefix} loaded authenticated user`, parsed)
       setUser(parsed)
       setProfileForm((prev) => ({
         ...prev,
         campus: parsed.campus ?? prev.campus,
       }))
-    } catch {
+    } catch (error) {
+      console.error(`${logPrefix} failed to parse stored user`, error)
       setUser(null)
     }
   }, [])
@@ -66,6 +70,7 @@ const MoveOutSale = () => {
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = event.target
+    console.debug(`${logPrefix} profile field changed`, { name, value })
     setProfileForm((prev) => ({ ...prev, [name]: value }))
   }
 
@@ -77,6 +82,10 @@ const MoveOutSale = () => {
     }
 
     setProfileStatus('Saving...')
+    console.debug(`${logPrefix} submitting profile update`, {
+      email: user.email,
+      profileForm,
+    })
 
     try {
       await postJson('/auth/profile/', {
@@ -94,13 +103,16 @@ const MoveOutSale = () => {
       localStorage.setItem('roomsphereUser', JSON.stringify(nextUser))
       setUser(nextUser)
       setProfileStatus('Profile updated!')
+      console.debug(`${logPrefix} profile updated successfully`, nextUser)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Update failed'
+      console.error(`${logPrefix} profile update failed`, err)
       setProfileStatus(message)
     }
   }
 
   const handleLogout = () => {
+    console.debug(`${logPrefix} user requested logout`, { user })
     localStorage.removeItem('roomsphereUser')
     setUser(null)
     setMenuOpen(false)
@@ -117,11 +129,22 @@ const MoveOutSale = () => {
   }
 
   const handleResetFilters = () => {
+    console.debug(`${logPrefix} resetting filters`)
     setSelectedCollege('all')
     setSelectedCategory('all')
     setSelectedCondition('all')
     setMaxBudget('')
     setSortBy('recent')
+  }
+
+  const handleToggleMenu = () => {
+    console.debug(`${logPrefix} toggling profile menu`, { menuOpen: !menuOpen })
+    setMenuOpen((prev) => !prev)
+  }
+
+  const handleItemClick = (id: string) => {
+    console.debug(`${logPrefix} navigating to item detail`, { itemId: id })
+    navigate(`/moveout-sale/${id}`)
   }
 
   // Extract unique values for filters
@@ -140,15 +163,21 @@ const MoveOutSale = () => {
   // Fetch moveout items from API
   useEffect(() => {
     const fetchMoveoutItems = async () => {
+      console.debug(`${logPrefix} fetching moveout items`)
       try {
         setLoading(true)
         const response = await getJson('/auth/moveout/')
-        // Handle both array and object responses
         const data = Array.isArray(response.items) ? response.items : response.items || []
+        console.debug(`${logPrefix} moveout items response`, {
+          rawResponse: response,
+          itemCount: (data as ListingItem[]).length,
+        })
         setItems(data as ListingItem[])
         setError(null)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load moveout items')
+        const message = err instanceof Error ? err.message : 'Failed to load moveout items'
+        console.error(`${logPrefix} fetch failed`, err)
+        setError(message)
         setItems([])
       } finally {
         setLoading(false)
@@ -160,19 +189,26 @@ const MoveOutSale = () => {
 
   // Filter and sort items
   const filteredItems = useMemo(() => {
+    console.debug(`${logPrefix} applying filters`, {
+      selectedCollege,
+      selectedCategory,
+      selectedCondition,
+      maxBudget,
+      sortBy,
+      itemsCount: items.length,
+    })
+
     let filtered = items.filter((item) => {
       if (selectedCollege !== 'all' && item.location !== selectedCollege) return false
       if (selectedCategory !== 'all' && item.category !== selectedCategory) return false
       if (selectedCondition !== 'all' && item.condition !== selectedCondition) return false
       
-      // Max budget filter
       const itemPrice = Number(item.price) || 0
       if (maxBudget && itemPrice > Number(maxBudget)) return false
       
       return true
     })
 
-    // Sort
     if (sortBy === 'recent') {
       filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     } else if (sortBy === 'price-low') {
@@ -181,6 +217,9 @@ const MoveOutSale = () => {
       filtered.sort((a, b) => (b.price || 0) - (a.price || 0))
     }
 
+    console.debug(`${logPrefix} filtered result`, {
+      filteredCount: filtered.length,
+    })
     return filtered
   }, [items, selectedCollege, selectedCategory, selectedCondition, maxBudget, sortBy])
 
