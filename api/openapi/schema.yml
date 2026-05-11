@@ -1,0 +1,307 @@
+openapi: 3.0.3
+info:
+  title: Roomsphere API
+  version: 1.0.0
+  description: Roomsphere backend API documentation
+paths:
+  /api/auth/login/:
+    post:
+      operationId: auth_login_create
+      description: Login endpoint
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/auth/moveout/:
+    get:
+      operationId: auth_moveout_retrieve
+      description: Retrieve all moveout items
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/auth/moveout/{item_id}/:
+    get:
+      operationId: auth_moveout_retrieve_2
+      description: Retrieve a specific moveout item by ID
+      parameters:
+      - in: path
+        name: item_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/auth/moveout/post-item/:
+    post:
+      operationId: auth_moveout_post_item_create
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/auth/profile/:
+    post:
+      operationId: auth_profile_create
+      description: Update user preferences from React
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/auth/room-vacancies/:
+    get:
+      operationId: auth_room_vacancies_retrieve
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/auth/room-vacancies/{vacancy_id}/:
+    get:
+      operationId: auth_room_vacancies_retrieve_2
+      parameters:
+      - in: path
+        name: vacancy_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    delete:
+      operationId: auth_room_vacancies_destroy
+      parameters:
+      - in: path
+        name: vacancy_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /api/auth/room-vacancies/post-item/:
+    post:
+      operationId: auth_room_vacancies_post_item_create
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/auth/roommates/:
+    get:
+      operationId: auth_roommates_retrieve
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/auth/roommates/{user_id}/:
+    get:
+      operationId: auth_roommates_retrieve_2
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/auth/signup/:
+    post:
+      operationId: auth_signup_create
+      description: View = Entry point from React
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/messages/conversations/:
+    get:
+      operationId: messages_conversations_retrieve
+      tags:
+      - messages
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: messages_conversations_create
+      tags:
+      - messages
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/messages/conversations/{conversation_id}/:
+    get:
+      operationId: messages_conversations_retrieve_2
+      parameters:
+      - in: path
+        name: conversation_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - messages
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: messages_conversations_create_2
+      parameters:
+      - in: path
+        name: conversation_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - messages
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/messages/moveout/{item_id}/:
+    post:
+      operationId: messages_moveout_create
+      parameters:
+      - in: path
+        name: item_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - messages
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/messages/room-vacancies/{vacancy_id}/:
+    post:
+      operationId: messages_room_vacancies_create
+      parameters:
+      - in: path
+        name: vacancy_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - messages
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/messages/roommates/{user_id}/:
+    post:
+      operationId: messages_roommates_create
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - messages
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid

@@ -17,5 +17,6 @@ python-decouple>=3.8
 
 # Production server
 gunicorn>=22.0
+drf-spectacular>=0.29.0
 
 Pillow>=10.0.0

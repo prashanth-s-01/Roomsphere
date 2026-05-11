@@ -78,6 +78,10 @@ test-backend:
 test-backend-file:
 	docker compose run --rm backend pytest $(TEST) -q
 
+# Generate OpenAPI schema YAML from Django REST Framework
+api-docs:
+	docker compose exec backend sh -c "mkdir -p openapi && python manage.py spectacular --file openapi/schema.yml"
+
 # Build and start fresh
 fresh:
 	docker compose down -v
