@@ -202,12 +202,45 @@ Run the backend test suite inside Docker:
 docker compose run --rm backend python manage.py test
 ```
 
+Run the dedicated backend test container:
+
+```bash
+docker compose run --rm backend-test
+```
+
+Run the frontend test suite:
+
+```bash
+cd web
+npm run test:run
+```
+
 Build the frontend locally or in the container:
 
 ```bash
 cd web
 npm run build
 ```
+
+### Test Coverage
+
+Run backend coverage and write a JSON summary:
+
+```bash
+docker compose run --rm backend-test sh -c "pip install pytest-cov >/tmp/pytest-cov-install.log && python -m pytest --cov=app --cov-report=term-missing --cov-report=json:/app/backend-coverage.json -q"
+```
+
+Run frontend coverage and write a JSON summary:
+
+```bash
+cd web
+npx vitest run --coverage --coverage.reporter=text --coverage.reporter=json-summary
+```
+
+Coverage reports are generated at:
+
+- `api/backend-coverage.json`
+- `web/coverage/coverage-summary.json`
 
 ## Notes
 
