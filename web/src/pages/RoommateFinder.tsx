@@ -206,6 +206,23 @@ const RoommateFinder = () => {
     vacancySortBy,
   ])
 
+  const profileFiltersActive =
+    selectedCampus !== 'all' ||
+    selectedGender !== 'all' ||
+    selectedSmoking !== 'all' ||
+    maxBudget.length > 0 ||
+    search.trim().length > 0 ||
+    sortBy !== 'best-match'
+
+  const vacancyFiltersActive =
+    vacancyCampus !== 'all' ||
+    vacancyHousingType !== 'all' ||
+    vacancyGenderPreference !== 'all' ||
+    vacancyLeaseDuration !== 'all' ||
+    vacancyMaxRent.length > 0 ||
+    vacancySearch.trim().length > 0 ||
+    vacancySortBy !== 'recent'
+
   const handleProfileChange = (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = event.target
     setProfileForm((prev) => ({ ...prev, [name]: value }))
@@ -392,6 +409,11 @@ const RoommateFinder = () => {
             <div>
               <p className="roommate-eyebrow">Room vacancies</p>
               <h2>{filteredVacancies.length} rooms students are currently offering</h2>
+              {vacancyFiltersActive ? (
+                <p className="roommate-results-summary">
+                  Showing {filteredVacancies.length} of {vacancies.length} room listings.
+                </p>
+              ) : null}
             </div>
             <p className="roommate-results-note">
               These listings work like moveout items: open a detail page, review the terms, and message the poster directly.
@@ -597,6 +619,11 @@ const RoommateFinder = () => {
               <div>
                 <p className="roommate-eyebrow">Available profiles</p>
                 <h2>{filteredProfiles.length} roommate profiles</h2>
+                {profileFiltersActive ? (
+                  <p className="roommate-results-summary">
+                    Showing {filteredProfiles.length} of {profiles.length} roommate profiles.
+                  </p>
+                ) : null}
               </div>
               <p className="roommate-results-note">
                 Logged-in users see match scoring based on campus, budget, habits, and roommate preferences.

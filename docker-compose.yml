@@ -55,6 +55,29 @@ services:
       sh -c "npm install &&
              npm run dev -- --host"
 
+  backend-test:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      - TESTING=1
+    volumes:
+      - ./api:/app
+    command: >
+      sh -c "python -m pytest -q"
+
+  frontend-test:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    volumes:
+      - ./web:/app
+      - /app/node_modules
+    command: >
+      sh -c "npm install &&
+             npm run test:run"
+
   # nginx:
   #   image: nginx:alpine
   #   restart: unless-stopped

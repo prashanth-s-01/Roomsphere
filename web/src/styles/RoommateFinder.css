@@ -109,6 +109,12 @@
   font-size: 0.94rem;
 }
 
+.roommate-results-summary {
+  margin: 10px 0 0;
+  color: #6b705f;
+  font-size: 0.92rem;
+}
+
 .roommate-eyebrow {
   margin: 0;
   text-transform: uppercase;

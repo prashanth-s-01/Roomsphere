@@ -137,16 +137,6 @@ const MoveOutSale = () => {
     setSortBy('recent')
   }
 
-  const handleToggleMenu = () => {
-    console.debug(`${logPrefix} toggling profile menu`, { menuOpen: !menuOpen })
-    setMenuOpen((prev) => !prev)
-  }
-
-  const handleItemClick = (id: string) => {
-    console.debug(`${logPrefix} navigating to item detail`, { itemId: id })
-    navigate(`/moveout-sale/${id}`)
-  }
-
   // Extract unique values for filters
   const colleges = useMemo(() => {
     const unique = [...new Set(items.map((item) => item.location))]
