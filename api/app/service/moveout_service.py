@@ -32,7 +32,7 @@ class MoveoutService:
             image_content_type=getattr(file_obj, 'content_type', ''),
         )
         moveout_item.save()
-        logger.info('moveout item created', {'item_id': str(moveout_item.id), 'owner_id': owner.id})
+        logger.info('moveout item created', {'item_id': str(moveout_item.id), 'owner_id': str(owner.pk)})
 
         return {
             'message': 'Moveout item posted successfully',

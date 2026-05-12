@@ -1,0 +1,414 @@
+# CS 520 Project Document Draft
+
+This document is organized to align with the sections in `520-ProjectDocument-Template-1 (1).odt` and serves as the written project report for Roomsphere. Placeholder items should be replaced with the final team-specific information before submission.
+
+## Cover Information
+
+- Team Name: `Roomsphere` or `TODO: confirm official team name`
+- Github Repo Link: `TODO`
+- Google Drive Project Document Link: `TODO`
+- Team Members:
+  - `TODO: Name / GitHub handle`
+  - `TODO: Name / GitHub handle`
+  - `TODO: Name / GitHub handle`
+  - `TODO: Name / GitHub handle`
+
+## 1. Requirements
+
+### 1.1 Overview
+
+Roomsphere is a campus-focused housing and resale platform designed for students in the Five College Consortium. The project addresses two recurring student problems that are often handled through fragmented channels such as group chats, social media, and informal spreadsheets: finding compatible roommates and selling move-out items at the end of a semester. By putting both workflows into one application, the system reduces friction and keeps housing-related interactions inside a safer student-only environment.
+
+The target users are undergraduate and graduate students at UMass Amherst, Amherst College, Smith College, Hampshire College, and Mount Holyoke College. Key stakeholders include students searching for roommates, students posting room vacancies, students buying and selling used items, and the project team maintaining the platform. The primary objectives of the system are to verify users through approved school email domains, support preference-based roommate matching, provide room-vacancy and move-out-sale posting workflows, and enable in-app messaging so students can move from discovery to contact without leaving the platform.
+
+### 1.2 Features
+
+- Verified student authentication using approved Five College email domains
+- Preference-based roommate discovery with compatibility scoring
+- Room vacancy posting and browsing for students offering available rooms
+- Move-out sale marketplace for used student items
+- In-app direct messaging for roommate, room-vacancy, and item inquiries
+- Search, filtering, and sorting across roommate and listing views
+
+### 1.3 Functional Requirements (Use Cases)
+
+| ID | Use Case | Actor(s) | Trigger | Main Success Scenario | Failure Cases |
+| --- | --- | --- | --- | --- | --- |
+| FR-1 | Create account | Student | User submits sign-up form | System validates school email domain, stores user profile, and creates account | Email is not from an approved domain, email already exists, required fields are missing |
+| FR-2 | Log in | Student | User submits login form | System verifies credentials and returns the user session data used by the frontend | Incorrect password, account does not exist |
+| FR-3 | Update roommate profile | Student | User edits profile/preferences | System updates campus, bio, budget, gender preference, smoking/drinking/sleep preferences, and move-in date | Invalid values or missing user record |
+| FR-4 | Browse roommate matches | Student | User opens the roommate finder page | System returns roommate candidates, calculates compatibility scores, and frontend displays filtered results | No eligible roommate profiles exist, API request fails |
+| FR-5 | Post a room vacancy | Student with available room | User submits room vacancy form | System validates the owner email, stores room details, and publishes the listing | Invalid owner email, invalid rent/date fields, missing required fields |
+| FR-6 | Browse room vacancies | Student | User opens the roommate finder room section or room detail page | System returns room vacancy listings and frontend supports filtering by search, campus, housing type, lease, preferred roommate, and rent | No vacancies match filters, invalid listing ID |
+| FR-7 | Delete own room vacancy | Listing owner | User clicks delete on their own room listing | System verifies ownership, deletes the room vacancy, and removes it from future search results | User is not the owner, listing does not exist |
+| FR-8 | Post a move-out sale item | Student seller | User submits move-out item form | System validates seller email, stores item details, and publishes the listing | Invalid owner email, bad price/category input, missing required fields |
+| FR-9 | Browse move-out items | Student buyer | User opens move-out sale page | System returns move-out items and frontend supports category, condition, text search, and sort filters | No items match filters, item detail not found |
+| FR-10 | Start a conversation from a listing or profile | Student | User clicks message/contact from a roommate, room vacancy, or move-out item page | System creates or reuses a conversation and stores the first message | User not found, listing/profile not found, user attempts to message self |
+| FR-11 | View and continue conversations | Student | User opens inbox or a conversation thread | System returns message history, marks incoming messages as read, and shows updated conversation previews | User is not a participant, conversation does not exist |
+
+### 1.4 Non-Functional Requirements
+
+1. Only users with approved Five College email domains shall be allowed to create accounts or submit owner/contact emails for protected student-facing flows. This is verifiable through backend serializer validation and should reject 100% of non-approved domains.
+2. The application shall persist structured data across service restarts using PostgreSQL storage. This is verifiable by restarting the Docker services and confirming that users, room vacancies, conversations, and move-out items remain available.
+3. Messaging updates shall support live inbox and thread refresh behavior while the backend process is running. This is verifiable by opening two clients and confirming that a new message appears in the recipient inbox/thread without a full page reload.
+4. The codebase shall separate concerns between presentation, API handlers, service logic, and persistence models. This is verifiable from the repository structure by inspecting the `web/src`, `api/app/view`, `api/app/service`, and `api/app/models` layers.
+
+### 1.5 Challenges & Risks
+
+1. Matching quality risk: compatibility scoring depends on accurate profile data. If users omit habits or enter misleading preferences, the score may overestimate roommate fit. Mitigation: keep the score transparent, show match reasons, and allow direct messaging before commitment.
+2. Messaging scalability risk: the current system uses Django Channels with an in-memory channel layer, which is suitable for development but not ideal for large-scale production traffic. Mitigation: move to Redis-backed Channels or another production-ready realtime transport.
+3. Testing and release risk: backend tests are written in `pytest` style, but the default Docker workflow does not currently expose `pytest`, and the frontend test tooling is not fully wired in `package.json`. Mitigation: standardize test commands and add CI-ready scripts before deployment.
+4. Time and integration risk: the project combines authentication, matching, listings, and messaging in one codebase, so changes in one area can affect others. Mitigation: continue using feature branches, small pull requests, and manual integration checks.
+
+## 2. Design
+
+### 2.1 Architecture Diagram
+
+```mermaid
+flowchart LR
+    A[React + Vite Frontend] -->|REST API| B[Django REST Views]
+    A -->|WebSocket| C[Django Channels Consumers]
+    B --> D[Service Layer]
+    C --> D
+    D --> E[Django Models / ORM]
+    E --> F[(PostgreSQL)]
+```
+
+The system follows a layered design. The React frontend handles navigation, forms, filtering, and page rendering. Django view modules expose API endpoints for authentication, roommate matching, listings, and messaging. Service modules contain business logic such as compatibility scoring, conversation serialization, and listing creation. Django models encapsulate the persistent data structure, and PostgreSQL stores the underlying data.
+
+The project demonstrates object-oriented and modular design in several ways:
+
+- Encapsulation: user, message, room vacancy, and move-out listing data are encapsulated in dedicated Django model classes.
+- Abstraction: service classes such as `RoommateService`, `MessageService`, `MoveoutService`, and `RoomVacancyService` hide business rules from the views.
+- Separation of concerns: frontend UI, backend routing, business logic, and persistence are stored in different modules and directories.
+- Reusability: shared serializers and service helpers are reused across multiple endpoints and pages.
+
+Major classes and responsibilities:
+
+- `User`: stores identity, budget, campus, preferences, and profile information
+- `RoomVacancy`: stores room-vacancy listing data such as rent, housing type, and lease duration
+- `MoveoutItem`: stores marketplace listing data such as category, condition, and price
+- `Conversation`: represents a unique conversation between two users
+- `Message`: stores chat messages, sender, read state, and timestamps
+- `RoommateService`: computes compatibility and prepares roommate result payloads
+- `MessageService`: manages inbox summaries, thread payloads, and message creation
+
+### 2.2 UI Design
+
+The main user-facing pages are:
+
+- Home page introducing Roomsphere and linking to roommate and move-out workflows
+- Login and signup pages for verified student access
+- Roommate finder page with profile filters and room-vacancy filters
+- Roommate detail page with match reasoning and message action
+- Post room vacancy page for housing listings
+- Move-out sale page with item cards and filters
+- Post item page for seller submissions
+- Messaging inbox and thread view
+
+The final report should include screenshots of the major user-facing pages listed above. Each screenshot should be accompanied by a short caption describing the feature being demonstrated. Suitable captions include:
+
+- "Signup page showing Five College email verification flow"
+- "Roommate finder with compatibility-based filtering"
+- "Room vacancy detail page with owner contact workflow"
+- "Move-out marketplace with category and condition filters"
+- "Messaging inbox and conversation view"
+
+### 2.3 Data Model
+
+```mermaid
+erDiagram
+    USER ||--o{ ROOM_VACANCY : owns
+    USER ||--o{ MOVEOUT_ITEM : owns
+    USER ||--o{ CONVERSATION : participates_in
+    CONVERSATION ||--o{ MESSAGE : contains
+
+    USER {
+        uuid userid PK
+        string first_name
+        string last_name
+        string email
+        string campus
+        int budget_min
+        int budget_max
+        string smoking_preference
+        string drinking_preference
+        string sleep_schedule
+        string gender
+        string gender_preference
+        date move_in_date
+    }
+
+    ROOM_VACANCY {
+        uuid id PK
+        uuid owner_id FK
+        string title
+        string location
+        string housing_type
+        decimal rent
+        date available_from
+        string lease_duration
+        int total_rooms
+        string gender_preference
+    }
+
+    MOVEOUT_ITEM {
+        uuid id PK
+        uuid owner_id FK
+        string title
+        string category
+        string condition
+        decimal price
+        string contact_email
+    }
+
+    CONVERSATION {
+        uuid id PK
+        uuid participant1_id FK
+        uuid participant2_id FK
+        datetime created_at
+    }
+
+    MESSAGE {
+        uuid id PK
+        uuid conversation_id FK
+        uuid sender_id FK
+        text body
+        boolean is_read
+        datetime created_at
+    }
+```
+
+The core domain revolves around users and the artifacts they create: roommate profiles, room vacancies, move-out items, and conversations. A user can own many room-vacancy and move-out-sale listings. A conversation is uniquely defined between two users and contains many messages. This design supports listing discovery and direct communication without duplicating user identity records across features.
+
+### 2.4 Tech Stack With Justification
+
+- Frontend: React with Vite
+  React supports component-based UI development and reusable page patterns, while Vite provides a fast development server and simple environment-variable handling. This combination is well suited for interactive forms, routing, filtered listing pages, and state-driven messaging views.
+- Backend: Django, Django REST Framework, Channels, and Daphne
+  Django provides a structured project layout, ORM support, authentication-related utilities, and mature documentation. Django REST Framework simplifies JSON APIs, while Channels and Daphne make it possible to support WebSocket-based messaging updates alongside HTTP endpoints.
+- Database: PostgreSQL
+  PostgreSQL is a good fit because the project uses relational data with clear entity relationships among users, listings, vacancies, conversations, and messages. It also supports reliable persistence and is easy to run locally through Docker.
+- Deployment/Dev Environment: Docker Compose
+  Docker Compose makes the full stack reproducible by orchestrating frontend, backend, and database services together. This reduces onboarding friction for teammates and helps keep local environments consistent.
+
+### 2.5 Challenges & Risks
+
+From a design perspective, one of the main challenges was balancing modularity with speed of delivery. The project spans several related domains, including authentication, roommate matching, room-vacancy management, resale listings, and messaging. As a result, the team needed to separate listing logic, matching logic, and communication logic clearly enough to keep the system maintainable while still progressing quickly. Another design risk is that the current realtime layer is optimized primarily for development and demonstration use. Although the architecture is effective for local testing and small-scale usage, production deployment would require a more robust channel layer and a more formal infrastructure strategy.
+
+### 2.6 Work Plan
+
+The project development process can be summarized as a sequence of major phases:
+
+1. Phase 1: define project scope, user stories, and core data entities
+2. Phase 2: implement authentication and profile data management
+3. Phase 3: implement move-out sale posting, browsing, and detail pages
+4. Phase 4: implement messaging workflows and conversation management
+5. Phase 5: implement roommate matching and room-vacancy support
+6. Phase 6: polish UI, filtering, testing, documentation, and deployment
+
+In the final report, this phase summary should be supplemented with milestone dates and team-member ownership for each phase.
+
+The following table can be used to summarize team responsibilities and supporting evidence:
+
+| Team Member | Primary Responsibilities | Evidence |
+| --- | --- | --- |
+| `TODO` | `TODO` | `TODO: PR links / commits / screenshots` |
+| `TODO` | `TODO` | `TODO` |
+| `TODO` | `TODO` | `TODO` |
+| `TODO` | `TODO` | `TODO` |
+
+## 3. Implementation
+
+### 3.1 Project Organization
+
+The Roomsphere repository is organized into separate frontend and backend modules to keep the system modular and maintainable.
+
+```text
+Roomsphere/
+├── api/
+│   ├── app/
+│   │   ├── models/
+│   │   ├── serializer/
+│   │   ├── service/
+│   │   ├── view/
+│   │   ├── urls.py
+│   │   ├── message_urls.py
+│   │   └── consumers.py
+│   ├── config/
+│   └── tests/
+├── web/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── lib/
+│   │   ├── pages/
+│   │   └── styles/
+│   └── public/
+├── docker-compose.yml
+├── README.md
+└── BUILD.md
+```
+
+The backend is located in `api/` and contains the application models, serializers, services, views, routing, and tests. The frontend is located in `web/` and contains reusable UI components, application pages, shared utilities, and styling files. This separation improves readability, simplifies collaboration, and allows the frontend and backend to evolve independently.
+
+The final report should include one or two screenshots of the repository structure, such as a GitHub file tree or IDE explorer view, to support this description.
+
+### 3.2 UI Screenshots
+
+The application includes multiple user-facing screens that support the major workflows of the project. The final report should include representative screenshots of these interfaces in order to demonstrate the implemented functionality.
+
+Recommended screenshots include:
+- Home page
+- Login / signup
+- Roommate finder
+- Room vacancy posting form
+- Room vacancy detail page
+- Move-out sale page
+- Post-item form
+- Messaging inbox and conversation page
+
+Each screenshot should include a short caption explaining the workflow or feature being illustrated.
+
+### 3.3 Data Model Screenshots
+
+The data model of the project is centered around users, room vacancies, move-out sale items, conversations, and messages. These entities define the core structure of the system and support both marketplace and roommate-matching features.
+
+The final report should include visual evidence of the data model in one of the following forms:
+
+1. Export the ER diagram above as an image and include it here, or
+2. Insert screenshots of the key Django model files:
+- `api/app/models/users.py`
+- `api/app/models/room_vacancy.py`
+- `api/app/models/moveout_item.py`
+- `api/app/models/converstation.py`
+- `api/app/models/message.py`
+
+### 3.4 Challenges & Risks
+
+Several implementation-related challenges are still visible in the current codebase.
+
+- The frontend includes test files, but `web/package.json` does not currently define a `test` script.
+- The frontend production build currently fails because some test-related TypeScript dependencies are missing and unused-function warnings are treated as errors.
+- The backend includes `pytest`-style tests under `api/tests`, but the Docker backend environment does not currently provide the `pytest` executable.
+- Realtime messaging currently depends on the backend process and in-memory channel layer, which limits production readiness.
+
+These issues are important to document because they reflect the difference between implemented functionality and fully production-ready engineering support.
+
+### 3.5 Version Control & Team Contributions
+
+The project used Git and GitHub as the primary version-control platform for coordinating team development. The repository history shows a branch-based workflow in which `main` functioned as the shared integration branch, while most implementation work was carried out in feature-specific branches and later merged through pull requests. This approach supported parallel development across the frontend, backend, data model, and messaging components of Roomsphere.
+
+Branching strategy used.  
+The team primarily followed a feature-branch strategy. Instead of committing all work directly to `main`, contributors created branches for specific tasks or milestones, such as roommate matching, messaging, room-vacancy support, move-out sale functionality, and testing/debugging. Evidence of this strategy is visible in merge commits such as `feature/roommate-finder`, `feature/moveout-sale-posting`, `6-feat-messaging`, `case-7`, `case-8`, and `test/test-and-debug-moveout-sale`. This branching model reduced integration conflicts and made it easier to isolate work by feature area.
+
+Pull request workflow.  
+The repository history indicates that completed branch work was integrated through pull requests rather than through unrestricted direct commits to the shared branch. Representative merge entries include:
+
+- `Merge pull request #31 ... test/test-and-debug-moveout-sale`
+- `Merge pull request #29 ... feature/roommate-finder`
+- `Merge pull request #27 ... case-7`
+- `Merge pull request #25 ... case-8`
+- `Merge pull request #20 ... feature/moveout-sale-posting`
+- `Merge pull request #16 ... 6-feat-messaging`
+
+Using pull requests allowed related commits to be grouped into reviewable units before integration. This was especially useful for a project like Roomsphere, where changes to backend APIs, frontend pages, and messaging logic often needed to evolve together.
+
+Code review process.  
+Although this report does not include the full discussion history from every pull request, the merge-based workflow strongly suggests that code review and integration checks were performed at the pull-request level. In practice, this means that new code was packaged into a branch, submitted as a pull request, inspected in grouped form, and then merged into `main` after basic validation. This process helps improve code quality by making it easier to identify conflicts, confirm feature scope, and catch issues before shared integration. The workflow also creates a clearer project history than a process based entirely on direct commits.
+
+Team member responsibilities and contribution evidence.  
+The commit history demonstrates participation from multiple team members. Some contributors appear under more than one Git name or email identity, so the final submitted report should normalize these aliases into one official name per team member. Based on the current repository history, the primary responsibilities and supporting contribution summaries appear to be as follows:
+
+| Team Member | Primary Responsibility | Example Contribution Summary | Screenshot / Additional Evidence |
+| --- | --- | --- | --- |
+| `mktseelan` | Roommate finder features, room vacancy support, and related frontend/backend integration | `feat(api): add roommate finder endpoints`; `feat(web): add roommate finder experience`; `feat(api): add room vacancy posting flow`; `feat(web): add room vacancy pages and cards` | `TODO: add screenshot of commits or PR activity` |
+| `Yogeeswar` / `yogeeswar2001` | Messaging workflow, request/message integration, debugging, and backend messaging tests | `feat: implemented the messaging with search in conversation and contact list`; `Updated code to integrate request flow and message flow`; `Created setup for backend unit test cases & Added unit test cases for message flow backend` | `TODO: add screenshot of commits or PR activity` |
+| `Prashanth Senthil Sabesan` | Move-out sale posting flow, API helpers, authentication-related support, and test/debug fixes | `Add Moveout Item database model`; `Add moveout item post API`; `Add Post Item page`; `feat: OTP mailing functionality for email authentication`; `Fix unit tests` | `TODO: add screenshot of commits or PR activity` |
+| `Rukesh` / `rukesh230801` | Move-out sale integration, testing support, and pull-request-based integration work | `move out sale ui and backend api integration`; `unit tests for move out sales`; merge activity for `case-7` and backend move-out retrieval work | `TODO: add screenshot of commits or PR activity` |
+
+Overall, the version-control process supported incremental development and team coordination throughout the project. The use of feature branches, pull requests, and merge-based integration helped isolate changes, preserve a readable development history, and provide concrete evidence of individual and shared contributions across the implementation of Roomsphere.
+
+## 4. Evaluation
+
+### 4.1 Evaluation of Functional Requirements
+
+| Requirement | Evaluation Status | Evidence |
+| --- | --- | --- |
+| FR-1 Create account | Implemented | Backend signup view and serializer validation for approved email domains |
+| FR-2 Log in | Implemented | Backend login view and frontend login page |
+| FR-3 Update roommate profile | Implemented | Profile update API and stored user preference fields |
+| FR-4 Browse roommate matches | Implemented | `RoommateService` returns filtered profiles with compatibility scores |
+| FR-5 Post room vacancy | Implemented | Room vacancy model, serializer, view, and post form |
+| FR-6 Browse room vacancies | Implemented | Vacancy list/detail APIs and room filters in roommate finder UI |
+| FR-7 Delete own room vacancy | Implemented | Delete handler with owner-email verification |
+| FR-8 Post move-out sale item | Implemented | Move-out item model, serializer, view, and seller form |
+| FR-9 Browse move-out items | Implemented | Move-out sale page, filters, and item detail page |
+| FR-10 Start a conversation | Implemented | Messaging APIs for roommates, room vacancies, and move-out items |
+| FR-11 View and continue conversations | Implemented | Inbox and conversation thread APIs plus WebSocket consumers |
+
+Automated evidence currently present in the repository includes:
+
+- Backend `pytest`-style tests for move-out workflows in `api/tests/test_moveout_backend.py`
+- Backend `pytest`-style tests for messaging workflows in `api/tests/test_message_flow.py`
+- Frontend component tests in:
+  - `web/src/pages/__tests__/PostItem.test.tsx`
+  - `web/src/pages/__tests__/MoveOutSale.test.tsx`
+
+Current verification findings:
+
+- `docker compose run --rm backend-test` now executes the backend `pytest` workflow successfully, with `21 passed`.
+- `docker compose run --rm frontend-test` now executes the frontend Vitest workflow successfully, with `22 passed`.
+- `docker compose run --rm frontend sh -c "npm install && npm run build"` completes successfully, confirming that the frontend production build passes inside the Docker-based environment.
+- Local verification also confirms that `npm run build` and `npm run test:run` complete successfully in the frontend module.
+
+This evaluation shows that the major system features are implemented and that the repository now supports a reproducible automated verification workflow for both frontend and backend components. Although the project still does not provide a combined numeric coverage report, the build and test process is substantially stronger and better aligned with a production-quality engineering workflow than in earlier iterations.
+
+### 4.2 Evaluation of Non-Functional Requirements
+
+1. Email-domain restriction  
+   The backend enforces approved Five College email validation through serializer logic. This helps ensure that only valid student users can access protected platform features.
+2. Data persistence  
+   The application uses PostgreSQL with a persistent Docker volume, allowing data such as users, room listings, and messages to remain available across service restarts.
+3. Realtime usability  
+   The messaging system includes WebSocket consumers for conversation and inbox updates. This improves user experience by reducing the need for manual page refreshes during active communication.
+
+To strengthen this section further, the final report may include one or two simple manual measurements such as:
+
+- average API response time for loading roommate or move-out listings in local Docker
+- short user feedback from teammates/classmates about ease of navigation
+- a small demo observation of live message delivery across two browser windows
+
+### 4.3 Test Coverage Summary
+
+At present, the repository includes both backend and frontend test files, and these tests can now be executed through reproducible project workflows. The backend tests run through the dedicated `backend-test` Docker service, while the frontend tests run through the `frontend-test` Docker service and the frontend production build also completes successfully. However, a complete combined numeric coverage report has not yet been integrated into the workflow, so an overall coverage percentage is still not available for inclusion in the report.
+
+A reasonable summary for the final submission is that the project now contains meaningful automated tests together with working build and test execution paths, but the coverage-reporting pipeline remains incomplete. Extending the project with `pytest-cov` on the backend, frontend coverage reporting through Vitest, and a combined reporting step would be a practical next step for improving engineering maturity.
+
+## 5. Discussion
+
+### 5.1 Lessons Learned
+
+This project showed the importance of designing around a clear student need rather than building a generic housing or marketplace platform. By combining roommate matching, room-vacancy posting, move-out sales, and messaging in a single system, the team created a more useful and focused experience for the Five College community.
+
+The team also gained experience with modular backend design, frontend page-based development, containerized deployment, and realtime communication features. One major lesson was that combining multiple workflows in one application requires strong separation of concerns across models, services, and UI components.
+
+### 5.2 Limitations
+
+The current system still has several limitations. The messaging layer is not yet designed for production-scale realtime usage, and the testing workflow is not fully integrated into the development environment. In addition, the usefulness of roommate matching depends heavily on the accuracy and completeness of user-provided profile information. Another limitation is that the platform's value depends on active student participation; with a small user base, both matching quality and listing variety may be limited.
+
+### 5.3 Future Development Plans
+
+Possible future improvements include:
+
+- adding production-ready realtime infrastructure such as Redis-backed Channels
+- improving user onboarding and roommate preference detail
+- adding saved searches, favorites, and listing-status indicators
+- improving accessibility and mobile responsiveness
+- integrating CI pipelines for testing, linting, builds, and coverage reporting
+- adding moderation, reporting, and trust-and-safety features for listings and messages
+
+### 5.4 Development Process Reflection
+
+The repository history suggests that the team used a feature-branch workflow with pull-request-based integration into `main`, which is a strong software engineering practice for collaborative development. Over time, the project appears to have grown from core listing functionality into a broader student platform that supports roommate matching, room-vacancy management, and messaging.
+
+A key takeaway from the development process is that implementation and verification should evolve together. In future iterations, the team would benefit from integrating testing, build validation, and documentation updates more tightly into the same development workflow.
